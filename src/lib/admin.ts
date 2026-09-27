@@ -3,7 +3,14 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import type { Category, RawProduct } from "./products";
+import {
+  applyTransferPercent,
+  cashPrice,
+  DEFAULT_TRANSFER_PERCENT,
+  transferPrice,
+  type Category,
+  type RawProduct,
+} from "./products";
 
 export function slugify(text: string) {
   return text
@@ -77,7 +84,11 @@ export const adminDashboard = createServerFn({ method: "GET" }).handler(async ()
 export const adminProducts = createServerFn({ method: "GET" }).handler(async () => {
   const store = await guard();
   const cat = await store.readCatalog();
-  return { products: cat.products, categories: cat.categories };
+  return {
+    products: cat.products,
+    categories: cat.categories,
+    transferDiscount: cat.settings.transferDiscount ?? DEFAULT_TRANSFER_PERCENT,
+  };
 });
 
 export const adminProduct = createServerFn({ method: "GET" })
@@ -97,6 +108,7 @@ const productInput = z.object({
   brand: z.string().trim().max(60).optional(),
   category: z.string().min(1),
   priceCard: z.number().int().positive().nullable(),
+  priceTransfer: z.number().int().positive().nullable(),
   stock: z.number().int().min(0).max(100000),
   available: z.boolean(),
   short: z.string().trim().max(300).optional(),
@@ -121,6 +133,20 @@ export const adminSaveProduct = createServerFn({ method: "POST" })
     const [cat, desc] = await Promise.all([store.readCatalog(), store.readDescriptions()]);
     if (!cat.categories.some((c) => c.slug === data.category))
       throw new Error("Elegí una categoría válida");
+    if ((data.priceCard == null) !== (data.priceTransfer == null)) {
+      throw new Error("Completá el precio en efectivo y el de cuotas, o dejá los dos vacíos.");
+    }
+    if (
+      data.priceCard != null &&
+      data.priceTransfer != null &&
+      data.priceTransfer > data.priceCard
+    ) {
+      throw new Error("El precio en efectivo no puede ser mayor que el precio en cuotas.");
+    }
+    applyTransferPercent(cat.settings.transferDiscount);
+    const suggested = transferPrice(data.priceCard);
+    const priceTransfer =
+      data.priceTransfer != null && data.priceTransfer === suggested ? null : data.priceTransfer;
 
     let slug = data.originalSlug;
     const idx = slug ? cat.products.findIndex((p) => p.slug === slug) : -1;
@@ -145,6 +171,7 @@ export const adminSaveProduct = createServerFn({ method: "POST" })
       brand: data.brand ? data.brand : null,
       category: data.category,
       priceCard: data.priceCard,
+      priceTransfer,
       stock: data.variants.length
         ? data.variants.reduce((a, v) => a + (v.available ? v.stock : 0), 0)
         : data.stock,
@@ -209,6 +236,7 @@ export const adminBulkPrice = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const store = await guard();
     const cat = await store.readCatalog();
+    applyTransferPercent(cat.settings.transferDiscount);
     const subs = new Set(
       data.category
         ? [
@@ -222,22 +250,49 @@ export const adminBulkPrice = createServerFn({ method: "POST" })
       (!data.category || subs.has(p.category)) &&
       (!data.brand || p.brand === data.brand);
     const factor = 1 + data.percent / 100;
-    const rows = cat.products.filter(match).map((p) => ({
-      slug: p.slug,
-      name: p.name,
-      before: p.priceCard!,
-      after: Math.round(p.priceCard! * factor),
-    }));
+    const rows = cat.products.filter(match).map((p) => {
+      const after = Math.round(p.priceCard! * factor);
+      const transferBefore = cashPrice(p)!;
+      const transferAfter =
+        p.priceTransfer != null ? Math.round(p.priceTransfer * factor) : transferPrice(after)!;
+      return {
+        slug: p.slug,
+        name: p.name,
+        before: p.priceCard!,
+        after,
+        transferBefore,
+        transferAfter,
+      };
+    });
     if (data.apply && rows.length) {
-      const map = new Map(rows.map((r) => [r.slug, r.after]));
+      const map = new Map(rows.map((r) => [r.slug, r]));
       await store.writeCatalog({
         ...cat,
-        products: cat.products.map((p) =>
-          map.has(p.slug) ? { ...p, priceCard: map.get(p.slug)! } : p,
-        ),
+        products: cat.products.map((p) => {
+          const next = map.get(p.slug);
+          if (!next) return p;
+          return {
+            ...p,
+            priceCard: next.after,
+            ...(p.priceTransfer != null ? { priceTransfer: next.transferAfter } : {}),
+          };
+        }),
       });
     }
     return { rows, applied: data.apply };
+  });
+
+export const adminSetTransferDiscount = createServerFn({ method: "POST" })
+  .validator((d: unknown) => z.object({ percent: z.number().int().min(0).max(90) }).parse(d))
+  .handler(async ({ data }) => {
+    const store = await guard();
+    const cat = await store.readCatalog();
+    await store.writeCatalog({
+      ...cat,
+      settings: { ...cat.settings, transferDiscount: data.percent },
+    });
+    applyTransferPercent(data.percent);
+    return { percent: data.percent };
   });
 
 /* ----------------------------- Categorías --------------------------- */
@@ -372,16 +427,18 @@ export const adminSetOrderStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     await guard();
-    const { getOrder, saveOrder } = await import("@/server/orders");
+    const { getOrder, setStatus } = await import("@/server/orders");
     const order = await getOrder(data.id);
     if (!order) throw new Error("Pedido no encontrado");
-    // Cambio manual desde el panel: se registra siempre
-    order.status = data.status;
-    order.history.push({
-      at: new Date().toISOString(),
-      status: data.status,
-      note: "Cambio manual desde el panel",
-    });
-    await saveOrder(order);
+    await setStatus(order, data.status, "Cambio manual desde el panel");
+    return { ok: true };
+  });
+
+export const adminDeleteOrder = createServerFn({ method: "POST" })
+  .validator((id: string) => z.string().min(1).parse(id))
+  .handler(async ({ data: id }) => {
+    await guard();
+    const { removeOrder } = await import("@/server/orders");
+    await removeOrder(id);
     return { ok: true };
   });

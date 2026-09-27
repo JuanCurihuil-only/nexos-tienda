@@ -159,13 +159,13 @@ function ProductoPage() {
   const { add, setOpen } = useCart();
   const navigate = useNavigate();
   const [active, setActive] = useState(0);
-  const firstAvailable = product.variants.find((v) => v.available);
+  const firstAvailable = product.variants.find((v) => v.available && v.stock > 0);
   const [variantId, setVariantId] = useState<number | undefined>(firstAvailable?.id);
 
   const trail = categoryTrail(product.category);
-  const buyable = isPurchasable(product);
   const variant = product.variants.find((v) => v.id === variantId);
   const stock = variant ? variant.stock : product.stock;
+  const buyable = isPurchasable(product) && stock > 0;
   const related = productsByCategory(product.category)
     .filter((p) => p.slug !== product.slug)
     .sort((a, b) => Number(isPurchasable(b)) - Number(isPurchasable(a)))
@@ -255,7 +255,7 @@ function ProductoPage() {
                     <label
                       key={v.id}
                       className={`cursor-pointer rounded-lg border px-3 py-2 text-sm font-medium ${
-                        !v.available
+                        !v.available || v.stock < 1
                           ? "cursor-not-allowed border-dashed text-muted-foreground line-through opacity-60"
                           : v.id === variantId
                             ? "border-primary bg-primary/10 text-primary"
@@ -266,7 +266,7 @@ function ProductoPage() {
                         type="radio"
                         name="variante"
                         value={v.id}
-                        disabled={!v.available}
+                        disabled={!v.available || v.stock < 1}
                         checked={v.id === variantId}
                         onChange={() => setVariantId(v.id)}
                         className="sr-only"

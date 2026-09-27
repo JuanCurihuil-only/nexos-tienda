@@ -3,7 +3,7 @@ import { Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PageTitle, Select, TextInput } from "@/components/admin/ui";
 import { adminProducts } from "@/lib/admin";
-import { formatPrice, transferPrice } from "@/lib/products";
+import { cashPrice, formatPrice } from "@/lib/products";
 
 export const Route = createFileRoute("/admin/productos/")({
   loader: () => adminProducts(),
@@ -109,11 +109,9 @@ function ProductList() {
                 <span className="hidden text-right sm:block">
                   {p.priceCard != null ? (
                     <>
-                      <span className="block font-bold">
-                        {formatPrice(transferPrice(p.priceCard)!)}
-                      </span>
+                      <span className="block font-bold">{formatPrice(cashPrice(p)!)}</span>
                       <span className="block text-xs text-muted-foreground">
-                        tarjeta {formatPrice(p.priceCard)}
+                        cuotas {formatPrice(p.priceCard)}
                       </span>
                     </>
                   ) : (

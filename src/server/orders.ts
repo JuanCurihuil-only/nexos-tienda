@@ -1,4 +1,4 @@
-import { ensureData, fetchOrder, fetchOrders, persistOrder } from "./db";
+import { deleteOrder, ensureData, fetchOrder, fetchOrders, persistOrder } from "./db";
 
 export type OrderStatus =
   | "pendiente_transferencia"
@@ -43,6 +43,8 @@ export type Order = {
   customer: Customer;
   mp?: { preferenceId?: string; paymentId?: string; status?: string; statusDetail?: string };
   history: { at: string; status: OrderStatus; note?: string }[];
+  /** Units were already taken from product stock. */
+  stockApplied?: boolean;
 };
 
 export function newOrderId() {
@@ -74,11 +76,30 @@ export async function getOrder(id: string): Promise<Order | null> {
 export async function setStatus(order: Order, status: OrderStatus, note?: string) {
   if (order.status === status) return order;
   if (order.status === "pagado" && !["cancelado", "enviado"].includes(status)) return order;
+  const { syncOrderStock } = await import("./stock");
+  const stock = await syncOrderStock(order, status);
+  const stockNote =
+    stock === "deducted" ? "Stock descontado" : stock === "restored" ? "Stock repuesto" : "";
+  const fullNote = [note, stockNote].filter(Boolean).join(". ");
   order.status = status;
-  order.history.push({ at: new Date().toISOString(), status, ...(note ? { note } : {}) });
+  order.history.push({
+    at: new Date().toISOString(),
+    status,
+    ...(fullNote ? { note: fullNote } : {}),
+  });
   await saveOrder(order);
-  console.log(`[pedidos] ${order.id} → ${status}${note ? ` (${note})` : ""}`);
+  console.log(`[pedidos] ${order.id} → ${status}${fullNote ? ` (${fullNote})` : ""}`);
   return order;
+}
+
+export async function removeOrder(id: string) {
+  const order = await getOrder(id);
+  if (!order) throw new Error("Pedido no encontrado");
+  if (order.stockApplied) {
+    const { syncOrderStock } = await import("./stock");
+    await syncOrderStock(order, "cancelado");
+  }
+  await deleteOrder(order.id);
 }
 
 export async function listOrders(): Promise<Order[]> {

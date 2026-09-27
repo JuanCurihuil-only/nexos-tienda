@@ -97,12 +97,8 @@ function PedidoPage() {
           <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-[140px_1fr]">
             <dt className="text-muted-foreground">Alias</dt>
             <dd className="font-semibold">{order.transfer.alias}</dd>
-            <dt className="text-muted-foreground">CBU / CVU</dt>
-            <dd className="font-semibold break-all">{order.transfer.cbu}</dd>
             <dt className="text-muted-foreground">Titular</dt>
             <dd className="font-semibold">{order.transfer.titular}</dd>
-            <dt className="text-muted-foreground">Banco</dt>
-            <dd className="font-semibold">{order.transfer.banco}</dd>
           </dl>
           <p className="mt-3 text-sm text-muted-foreground">
             También podés pagar en efectivo en el showroom con el mismo descuento.

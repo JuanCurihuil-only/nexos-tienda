@@ -14,8 +14,9 @@ export const SOCIAL_LINKS = [
   { name: "Facebook", url: "https://www.facebook.com/Nexoscba" },
 ];
 
-/** Descuento por pagar con transferencia o efectivo (igual que en Tiendanube). */
-export const TRANSFER_DISCOUNT = 0.28;
+/** Descuento de fábrica en efectivo o transferencia, si el panel no guardó otro. */
+export const DEFAULT_TRANSFER_PERCENT = 28;
+export const TRANSFER_DISCOUNT = DEFAULT_TRANSFER_PERCENT / 100;
 /** Cuotas sin interés con tarjeta (el costo lo absorbe Nexos). */
 export const INSTALLMENTS = 6;
 export const WARRANTY_MONTHS = 6;
@@ -38,9 +39,9 @@ export type Product = {
   name: string;
   brand: string | null;
   category: string;
-  /** Precio de lista = precio con tarjeta. null = sin precio publicado. */
+  /** Precio en cuotas con tarjeta. null = sin precio publicado. */
   priceCard: number | null;
-  /** Precio con transferencia o efectivo (28% off). */
+  /** Precio con transferencia o efectivo. */
   priceTransfer: number | null;
   stock: number;
   available: boolean;
@@ -61,8 +62,13 @@ export type Category = {
   intro: string;
 };
 
-/** Producto tal como se guarda: sin el precio de transferencia (se calcula solo). */
-export type RawProduct = Omit<Product, "priceTransfer">;
+/**
+ * Producto tal como se guarda.
+ * priceTransfer ausente o null usa el descuento general de transferencia.
+ */
+export type RawProduct = Omit<Product, "priceTransfer"> & {
+  priceTransfer?: number | null;
+};
 
 export type HeroSettings = {
   title?: string | undefined;
@@ -71,7 +77,11 @@ export type HeroSettings = {
   image?: { lg: string; sm: string } | undefined;
 };
 
-export type StoreSettings = { hero?: HeroSettings | undefined };
+export type StoreSettings = {
+  hero?: HeroSettings | undefined;
+  /** Porcentaje de descuento en efectivo/transferencia para productos sin precio propio. */
+  transferDiscount?: number | undefined;
+};
 
 export type CatalogData = {
   products: RawProduct[];
@@ -92,12 +102,43 @@ export let brands: string[] = [];
 export let settings: StoreSettings = {};
 export let catalogLoaded = false;
 
+let transferPercent = DEFAULT_TRANSFER_PERCENT;
+
+/** Aplica el descuento general guardado en el panel (o el de fábrica si no hay). */
+export function applyTransferPercent(percent: number | null | undefined) {
+  if (percent == null || !Number.isFinite(percent)) {
+    transferPercent = DEFAULT_TRANSFER_PERCENT;
+    return;
+  }
+  transferPercent = Math.min(90, Math.max(0, Math.round(percent)));
+}
+
+/** Precio de efectivo para un porcentaje concreto, sin cambiar el descuento vigente. */
+export function transferPriceAt(priceCard: number | null, percent: number) {
+  if (priceCard == null) return null;
+  const rate = Math.min(90, Math.max(0, Math.round(percent))) / 100;
+  return Math.round(priceCard * (1 - rate));
+}
+
+/** Precio sugerido de efectivo: el de cuotas menos el descuento general. */
 export function transferPrice(priceCard: number | null) {
-  return priceCard == null ? null : Math.round(priceCard * (1 - TRANSFER_DISCOUNT));
+  return transferPriceAt(priceCard, transferPercent);
+}
+
+/** Precio de efectivo del producto, o el sugerido si todavía no tiene uno propio. */
+export function cashPrice(product: { priceCard: number | null; priceTransfer?: number | null }) {
+  if (product.priceTransfer != null) return product.priceTransfer;
+  return transferPrice(product.priceCard);
+}
+
+export function productDiscountPercent(priceCard: number, priceTransfer: number) {
+  if (priceCard <= 0 || priceTransfer >= priceCard) return 0;
+  return Math.round((1 - priceTransfer / priceCard) * 100);
 }
 
 export function setCatalog(data: CatalogData) {
-  products = data.products.map((p) => ({ ...p, priceTransfer: transferPrice(p.priceCard) }));
+  applyTransferPercent(data.settings.transferDiscount);
+  products = data.products.map((p) => ({ ...p, priceTransfer: cashPrice(p) }));
   categories = data.categories;
   topCategories = categories.filter((c) => !c.parent);
   brands = Array.from(
@@ -178,8 +219,9 @@ export function installmentValue(priceCard: number) {
   return Math.round(priceCard / INSTALLMENTS);
 }
 
+/** Descuento general que se ofrece en los textos de la tienda. */
 export function discountPercent() {
-  return Math.round(TRANSFER_DISCOUNT * 100);
+  return transferPercent;
 }
 
 export function isPurchasable(p: Product) {

@@ -1,9 +1,9 @@
 import { CreditCard } from "lucide-react";
 import {
-  discountPercent,
   formatPrice,
   INSTALLMENTS,
   installmentValue,
+  productDiscountPercent,
   type Product,
 } from "@/lib/products";
 
@@ -47,6 +47,7 @@ export function Price({ product, size = "md" }: { product: Product; size?: "md" 
   }
 
   const big = size === "lg";
+  const off = productDiscountPercent(product.priceCard, product.priceTransfer);
 
   return (
     <div>
@@ -58,13 +59,15 @@ export function Price({ product, size = "md" }: { product: Product; size?: "md" 
         >
           {formatPrice(product.priceTransfer)}
         </span>
-        <span
-          className={`rounded bg-primary px-1.5 py-0.5 font-bold text-primary-foreground ${
-            big ? "text-sm" : "text-xs"
-          }`}
-        >
-          {discountPercent()}% OFF
-        </span>
+        {off > 0 && (
+          <span
+            className={`rounded bg-primary px-1.5 py-0.5 font-bold text-primary-foreground ${
+              big ? "text-sm" : "text-xs"
+            }`}
+          >
+            {off}% OFF
+          </span>
+        )}
       </div>
       <p className={`text-muted-foreground ${big ? "text-sm" : "text-xs"}`}>
         con transferencia o efectivo

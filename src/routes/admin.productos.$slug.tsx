@@ -20,10 +20,20 @@ import {
   discountPercent,
   formatPrice,
   INSTALLMENTS,
+  installmentValue,
+  productDiscountPercent,
   transferPrice,
   type ProductImage,
   type Variant,
 } from "@/lib/products";
+
+function parseMoney(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const amount = Math.round(Number(trimmed.replace(/\./g, "").replace(",", ".")));
+  if (!Number.isFinite(amount) || amount <= 0) return undefined;
+  return amount;
+}
 
 export const Route = createFileRoute("/admin/productos/$slug")({
   loader: ({ params }) => adminProduct({ data: params.slug }),
@@ -44,7 +54,13 @@ function ProductEditor() {
   const [name, setName] = useState(product?.name ?? "");
   const [category, setCategory] = useState(product?.category ?? "");
   const [brand, setBrand] = useState(product?.brand ?? "");
+  const suggestedCash = product?.priceCard != null ? transferPrice(product.priceCard) : null;
+  const storedCash = product?.priceTransfer ?? null;
   const [price, setPrice] = useState(product?.priceCard != null ? String(product.priceCard) : "");
+  const [cash, setCash] = useState(
+    (storedCash ?? suggestedCash) != null ? String(storedCash ?? suggestedCash) : "",
+  );
+  const [cashCustom, setCashCustom] = useState(storedCash != null && storedCash !== suggestedCash);
   const [stock, setStock] = useState(String(product?.stock ?? 1));
   const [available, setAvailable] = useState(product?.available ?? true);
   const [images, setImages] = useState<ProductImage[]>(product?.images ?? []);
@@ -54,11 +70,16 @@ function ProductEditor() {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(0);
 
-  const priceNum = price.trim()
-    ? Math.round(Number(price.replace(/\./g, "").replace(",", ".")))
-    : null;
-  const priceOk = priceNum === null || (Number.isFinite(priceNum) && priceNum > 0);
+  const cardPrice = parseMoney(price);
+  const cashPriceValue = parseMoney(cash);
   const parents = categories.filter((c) => !c.parent);
+
+  function onCardPrice(value: string) {
+    setPrice(value);
+    if (cashCustom) return;
+    const next = parseMoney(value);
+    setCash(next != null ? String(transferPrice(next)) : "");
+  }
 
   async function addPhotos(files: FileList | null) {
     if (!files?.length) return;
@@ -90,7 +111,15 @@ function ProductEditor() {
   async function onSave() {
     if (!name.trim()) return toast.error("Poné el nombre del producto");
     if (!category) return toast.error("Elegí una categoría");
-    if (!priceOk) return toast.error("El precio tiene que ser un número (sin puntos ni $)");
+    if (cardPrice === undefined || cashPriceValue === undefined) {
+      return toast.error("Los precios tienen que ser números, sin $");
+    }
+    if ((cardPrice == null) !== (cashPriceValue == null)) {
+      return toast.error("Completá el precio en efectivo y el de cuotas, o dejá los dos vacíos.");
+    }
+    if (cardPrice != null && cashPriceValue != null && cashPriceValue > cardPrice) {
+      return toast.error("El precio en efectivo no puede ser mayor que el de cuotas.");
+    }
     setBusy(true);
     try {
       const r = await save({
@@ -99,7 +128,8 @@ function ProductEditor() {
           name: name.trim(),
           brand: brand.trim() || undefined,
           category,
-          priceCard: priceNum,
+          priceCard: cardPrice,
+          priceTransfer: cashPriceValue,
           stock: Math.max(0, parseInt(stock || "0", 10) || 0),
           available,
           short: short.trim() || undefined,
@@ -290,27 +320,47 @@ function ProductEditor() {
           <Card className="space-y-4">
             <h2 className="text-lg font-bold">Precio y stock</h2>
             <Field
-              label="Precio de lista / tarjeta"
+              label="Precio en cuotas (tarjeta)"
               htmlFor="price"
-              hint="Sin puntos ni $. Vacío = “Precio a consultar”."
+              hint="Precio de lista. Las 6 cuotas se calculan sobre este valor. Vacío = precio a consultar."
             >
               <TextInput
                 id="price"
                 inputMode="numeric"
                 value={price}
-                onChange={(e) => setPrice(e.target.value)}
+                onChange={(e) => onCardPrice(e.target.value)}
                 placeholder="Ej: 644874"
               />
             </Field>
-            {priceNum != null && priceOk && (
+            <Field
+              label="Precio en efectivo / transferencia"
+              htmlFor="cash"
+              hint={
+                cashCustom
+                  ? "Precio propio de este producto. No cambia solo si editás las cuotas."
+                  : `Se sugiere el ${discountPercent()}% OFF. Cambialo si este producto tiene otro precio.`
+              }
+            >
+              <TextInput
+                id="cash"
+                inputMode="numeric"
+                value={cash}
+                onChange={(e) => {
+                  setCashCustom(true);
+                  setCash(e.target.value);
+                }}
+                placeholder="Ej: 464309"
+              />
+            </Field>
+            {cardPrice != null && cashPriceValue != null && (
               <div className="rounded-xl bg-surface p-4 text-sm">
                 <p>
-                  Transferencia / efectivo ({discountPercent()}% OFF):{" "}
-                  <strong className="text-lg">{formatPrice(transferPrice(priceNum)!)}</strong>
+                  {productDiscountPercent(cardPrice, cashPriceValue) > 0
+                    ? `${productDiscountPercent(cardPrice, cashPriceValue)}% OFF en efectivo`
+                    : "Mismo precio en efectivo y en cuotas"}
                 </p>
                 <p className="mt-1 font-semibold text-success">
-                  {INSTALLMENTS} cuotas sin interés de{" "}
-                  {formatPrice(Math.round(priceNum / INSTALLMENTS))}
+                  {INSTALLMENTS} cuotas sin interés de {formatPrice(installmentValue(cardPrice))}
                 </p>
               </div>
             )}

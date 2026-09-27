@@ -1,9 +1,9 @@
-import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, Ban, CheckCircle2, Truck } from "lucide-react";
+import { ArrowLeft, Ban, CheckCircle2, Trash2, Truck } from "lucide-react";
 import { WhatsAppIcon } from "@/components/site/BrandIcons";
 import { Button, Card, PageTitle, StatusBadge, formatDate, useToast } from "@/components/admin/ui";
-import { adminOrder, adminSetOrderStatus } from "@/lib/admin";
+import { adminDeleteOrder, adminOrder, adminSetOrderStatus } from "@/lib/admin";
 import { formatPrice } from "@/lib/products";
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
@@ -26,9 +26,12 @@ function waLink(phone: string, text: string) {
 function Pedido() {
   const o = Route.useLoaderData();
   const router = useRouter();
+  const navigate = useNavigate();
   const toast = useToast();
   const setStatus = useServerFn(adminSetOrderStatus);
+  const remove = useServerFn(adminDeleteOrder);
   const c = o.customer;
+  const stockTaken = o.status === "pagado" || o.status === "enviado" || o.stockApplied === true;
 
   async function change(status: "pagado" | "enviado" | "cancelado", confirmText: string) {
     if (!window.confirm(confirmText)) return;
@@ -36,6 +39,19 @@ function Pedido() {
       await setStatus({ data: { id: o.id, status } });
       toast.ok("Estado actualizado");
       router.invalidate();
+    } catch (e) {
+      toast.error(e);
+    }
+  }
+
+  async function onDelete() {
+    const text = stockTaken
+      ? `¿Eliminar el pedido ${o.id}? No se puede deshacer. Se va a reponer el stock.`
+      : `¿Eliminar el pedido ${o.id}? No se puede deshacer.`;
+    if (!window.confirm(text)) return;
+    try {
+      await remove({ data: o.id });
+      navigate({ to: "/admin/pedidos" });
     } catch (e) {
       toast.error(e);
     }
@@ -135,7 +151,12 @@ function Pedido() {
               <Button
                 variant="success"
                 className="w-full"
-                onClick={() => change("pagado", "¿Confirmás que el pago está recibido?")}
+                onClick={() =>
+                  change(
+                    "pagado",
+                    "¿Confirmás que el pago está recibido? Se va a descontar el stock.",
+                  )
+                }
               >
                 <CheckCircle2 className="h-5 w-5" /> Marcar como pagado
               </Button>
@@ -152,11 +173,21 @@ function Pedido() {
               <Button
                 variant="danger"
                 className="w-full"
-                onClick={() => change("cancelado", "¿Cancelar este pedido?")}
+                onClick={() =>
+                  change(
+                    "cancelado",
+                    o.status === "pagado" || o.status === "enviado"
+                      ? "¿Cancelar este pedido? Se va a reponer el stock."
+                      : "¿Cancelar este pedido?",
+                  )
+                }
               >
                 <Ban className="h-5 w-5" /> Cancelar pedido
               </Button>
             )}
+            <Button variant="danger" className="w-full" onClick={onDelete}>
+              <Trash2 className="h-5 w-5" /> Eliminar pedido
+            </Button>
           </Card>
         </div>
       </div>

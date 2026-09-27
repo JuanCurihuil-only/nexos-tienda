@@ -100,7 +100,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!product || !isPurchasable(product)) continue;
       const variant = l.variantId ? product.variants.find((v) => v.id === l.variantId) : undefined;
       if (l.variantId && (!variant || !variant.available)) continue;
-      const maxQty = Math.max(1, variant ? variant.stock : product.stock);
+      const maxQty = variant ? variant.stock : product.stock;
+      if (maxQty < 1) continue;
       out.push({
         key: lineKey(l.slug, l.variantId),
         product,

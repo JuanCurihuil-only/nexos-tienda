@@ -54,13 +54,14 @@ Cada producto es un bloque entre llaves `{ }`. Ejemplo:
 | `name` | Nombre que se ve en la tienda. |
 | `brand` | Marca (o `null` si no tiene). |
 | `category` | El `slug` de la categoría (ver punto 3). |
-| `priceCard` | **Precio de lista / tarjeta**, sin puntos. El precio con transferencia (28% OFF) y el valor de las 6 cuotas se calculan solos. `null` = "Precio a consultar". |
+| `priceCard` | **Precio en cuotas / tarjeta**, sin puntos. `null` = "Precio a consultar". |
+| `priceTransfer` | **Precio en efectivo / transferencia**. Si no está, se calcula con el 28% OFF. |
 | `stock` | Unidades disponibles. |
 | `available` | `true` se puede comprar, `false` muestra "Sin stock". |
 | `images` | Fotos (ver punto 5). La primera es la principal. |
 | `variants` | Modelos/colores. Vacío `[]` si no tiene. |
 
-**Cambiar un precio:** buscá el producto (Ctrl+F) y cambiá el número de `priceCard`.
+**Cambiar un precio:** en el panel, Productos → el producto. Ahí van el precio en cuotas y el de efectivo. El 28% es solo la sugerencia.
 
 **Agregar un producto:** copiá un bloque existente, pegalo después (separado por una coma), cambiá los datos y subí las fotos a `public/img/productos/`.
 
@@ -68,7 +69,7 @@ Cada producto es un bloque entre llaves `{ }`. Ejemplo:
 
 ## 2. Descuento, cuotas y garantía — `src/lib/products.ts` (arriba de todo)
 
-`TRANSFER_DISCOUNT = 0.28` (28%), `INSTALLMENTS = 6`, `WARRANTY_MONTHS = 6`, WhatsApp y redes.
+`TRANSFER_DISCOUNT` arranca en 28% y se cambia desde el panel, en Cambiar precios. `INSTALLMENTS = 6`, `WARRANTY_MONTHS = 6`, WhatsApp y redes. El precio publicado es el de cada producto; si no tiene uno de efectivo, usa ese descuento general.
 
 ## 3. Categorías — `src/lib/products.ts` (lista `categories`)
 

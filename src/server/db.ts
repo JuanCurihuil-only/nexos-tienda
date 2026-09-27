@@ -71,6 +71,7 @@ async function createTables() {
       brand text,
       category text NOT NULL,
       price_card integer,
+      price_transfer integer,
       stock integer NOT NULL,
       available boolean NOT NULL,
       short text NOT NULL DEFAULT '',
@@ -82,7 +83,8 @@ async function createTables() {
   await query`
     CREATE TABLE IF NOT EXISTS store_settings (
       id text PRIMARY KEY,
-      hero jsonb NOT NULL DEFAULT '{}'::jsonb
+      hero jsonb NOT NULL DEFAULT '{}'::jsonb,
+      transfer_discount integer
     )
   `;
   await query`
@@ -107,6 +109,18 @@ async function createTables() {
   `;
   await query`
     CREATE INDEX IF NOT EXISTS orders_created_at_idx ON orders (created_at DESC)
+  `;
+  await query`
+    ALTER TABLE products
+    ADD COLUMN IF NOT EXISTS price_transfer integer
+  `;
+  await query`
+    ALTER TABLE store_settings
+    ADD COLUMN IF NOT EXISTS transfer_discount integer
+  `;
+  await query`
+    ALTER TABLE orders
+    ADD COLUMN IF NOT EXISTS stock_applied boolean NOT NULL DEFAULT false
   `;
   await query`
     CREATE TABLE IF NOT EXISTS app_meta (
@@ -191,6 +205,7 @@ export async function saveCatalog(data: CatalogData) {
     brand: product.brand,
     category: product.category,
     price_card: product.priceCard,
+    price_transfer: product.priceTransfer ?? null,
     stock: product.stock,
     available: product.available,
     short: product.short ?? "",
@@ -208,15 +223,18 @@ export async function saveCatalog(data: CatalogData) {
     position,
   }));
   const hero = JSON.stringify(data.settings.hero ?? {});
+  const transferDiscount = data.settings.transferDiscount ?? null;
 
   await query.transaction((txn) => {
     const statements = [
       txn`DELETE FROM products`,
       txn`DELETE FROM categories`,
       txn`
-        INSERT INTO store_settings (id, hero)
-        VALUES ('store', ${hero}::jsonb)
-        ON CONFLICT (id) DO UPDATE SET hero = EXCLUDED.hero
+        INSERT INTO store_settings (id, hero, transfer_discount)
+        VALUES ('store', ${hero}::jsonb, ${transferDiscount})
+        ON CONFLICT (id) DO UPDATE SET
+          hero = EXCLUDED.hero,
+          transfer_discount = EXCLUDED.transfer_discount
       `,
     ];
     if (categoryRows.length > 0) {
@@ -237,15 +255,16 @@ export async function saveCatalog(data: CatalogData) {
     if (productRows.length > 0) {
       statements.push(txn`
         INSERT INTO products (
-          slug, name, brand, category, price_card, stock, available, short, images, variants, position
+          slug, name, brand, category, price_card, price_transfer, stock, available, short, images, variants, position
         )
-        SELECT slug, name, brand, category, price_card, stock, available, short, images, variants, position
+        SELECT slug, name, brand, category, price_card, price_transfer, stock, available, short, images, variants, position
         FROM jsonb_to_recordset(${JSON.stringify(productRows)}::jsonb) AS row(
           slug text,
           name text,
           brand text,
           category text,
           price_card int,
+          price_transfer int,
           stock int,
           available boolean,
           short text,
@@ -265,6 +284,7 @@ type ProductRow = {
   brand: string | null;
   category: string;
   price_card: number | null;
+  price_transfer: number | null;
   stock: number;
   available: boolean;
   short: string;
@@ -286,7 +306,7 @@ export async function fetchCatalog(): Promise<CatalogData> {
   const query = sql();
   const [productRows, categoryRows, settingsRows] = await Promise.all([
     query`
-      SELECT slug, name, brand, category, price_card, stock, available, short, images, variants
+      SELECT slug, name, brand, category, price_card, price_transfer, stock, available, short, images, variants
       FROM products
       ORDER BY position
     `,
@@ -295,14 +315,21 @@ export async function fetchCatalog(): Promise<CatalogData> {
       FROM categories
       ORDER BY position
     `,
-    query`SELECT hero FROM store_settings WHERE id = 'store'`,
+    query`SELECT hero, transfer_discount FROM store_settings WHERE id = 'store'`,
   ]);
   const products = productRows as unknown as ProductRow[];
   const categories = categoryRows as unknown as CategoryRow[];
-  const storedSettings = settingsRows as unknown as { hero: StoreSettings["hero"] }[];
+  const storedSettings = settingsRows as unknown as {
+    hero: StoreSettings["hero"];
+    transfer_discount: number | null;
+  }[];
 
-  const hero = storedSettings[0]?.hero;
-  const settings: StoreSettings = hero && Object.keys(hero).length > 0 ? { hero } : {};
+  const stored = storedSettings[0];
+  const hero = stored?.hero;
+  const settings: StoreSettings = {
+    ...(hero && Object.keys(hero).length > 0 ? { hero } : {}),
+    ...(stored?.transfer_discount != null ? { transferDiscount: stored.transfer_discount } : {}),
+  };
 
   return {
     products: products.map((product) => ({
@@ -311,6 +338,7 @@ export async function fetchCatalog(): Promise<CatalogData> {
       brand: product.brand,
       category: product.category,
       priceCard: product.price_card,
+      priceTransfer: product.price_transfer,
       stock: product.stock,
       available: product.available,
       short: product.short,
@@ -367,6 +395,7 @@ type OrderRow = {
   customer: Order["customer"];
   mp: Order["mp"] | null;
   history: Order["history"];
+  stock_applied: boolean;
 };
 
 function toIso(value: string | Date) {
@@ -385,6 +414,7 @@ function mapOrder(row: OrderRow): Order {
     customer: row.customer,
     ...(row.mp ? { mp: row.mp } : {}),
     history: row.history ?? [],
+    stockApplied: row.stock_applied === true,
   };
 }
 
@@ -416,10 +446,39 @@ export async function persistOrder(order: Order) {
   `;
 }
 
+/** Marks the order so stock is taken only once, even if the confirmation runs twice. */
+export async function claimOrderStock(id: string): Promise<boolean> {
+  await ensureSchema();
+  const rows = await sql()`
+    UPDATE orders
+    SET stock_applied = true
+    WHERE id = ${id} AND stock_applied = false
+    RETURNING id
+  `;
+  return rows.length > 0;
+}
+
+/** Clears the stock mark so a cancelled sale can be restored only once. */
+export async function releaseOrderStock(id: string): Promise<boolean> {
+  await ensureSchema();
+  const rows = await sql()`
+    UPDATE orders
+    SET stock_applied = false
+    WHERE id = ${id} AND stock_applied = true
+    RETURNING id
+  `;
+  return rows.length > 0;
+}
+
+export async function deleteOrder(id: string) {
+  await ensureSchema();
+  await sql()`DELETE FROM orders WHERE id = ${id}`;
+}
+
 export async function fetchOrder(id: string): Promise<Order | null> {
   await ensureSchema();
   const rows = (await sql()`
-    SELECT id, created_at, updated_at, status, method, items, total, customer, mp, history
+    SELECT id, created_at, updated_at, status, method, items, total, customer, mp, history, stock_applied
     FROM orders
     WHERE id = ${id}
   `) as OrderRow[];
@@ -430,7 +489,7 @@ export async function fetchOrder(id: string): Promise<Order | null> {
 export async function fetchOrders(): Promise<Order[]> {
   await ensureSchema();
   const rows = (await sql()`
-    SELECT id, created_at, updated_at, status, method, items, total, customer, mp, history
+    SELECT id, created_at, updated_at, status, method, items, total, customer, mp, history, stock_applied
     FROM orders
     ORDER BY created_at DESC
   `) as OrderRow[];

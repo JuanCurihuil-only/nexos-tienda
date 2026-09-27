@@ -60,7 +60,7 @@ export const createOrder = createServerFn({ method: "POST" })
       }
       if (p.variants.length > 0 && !variant) throw new Error(`Elegí el modelo de ${p.name}`);
       const max = variant ? variant.stock : p.stock;
-      if (max > 0 && line.qty > max) throw new Error(`Solo hay ${max} u. de ${p.name}`);
+      if (line.qty > max) throw new Error(`Solo hay ${max} u. de ${p.name}`);
       const unitPrice = data.method === "transferencia" ? p.priceTransfer! : p.priceCard!;
       return { slug: p.slug, name: p.name, variant: variant?.name, qty: line.qty, unitPrice };
     });
@@ -128,9 +128,7 @@ export const fetchOrder = createServerFn({ method: "GET" })
         order.method === "transferencia"
           ? {
               alias: env("TRANSFER_ALIAS") ?? "[COMPLETAR: alias]",
-              cbu: env("TRANSFER_CBU") ?? "[COMPLETAR: CBU/CVU]",
               titular: env("TRANSFER_TITULAR") ?? "[COMPLETAR: titular]",
-              banco: env("TRANSFER_BANCO") ?? "[COMPLETAR: banco]",
             }
           : null,
     };
