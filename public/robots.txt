@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /checkout
+Disallow: /pedido/
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://nexoscba.com/sitemap.xml

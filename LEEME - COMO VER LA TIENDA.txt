@@ -1,0 +1,15 @@
+TIENDA NEXOS - VERSION DE PRUEBA (no publicada)
+
+1) Instalar Node.js (version LTS) desde https://nodejs.org  (una sola vez)
+2) Descomprimir este ZIP (clic derecho > Extraer todo)
+3) Entrar a la carpeta nexos-tienda y hacer doble clic en INICIAR-TIENDA.bat
+   La primera vez tarda unos minutos porque descarga lo necesario.
+4) Abrir en el navegador: http://localhost:8080
+   No cerrar la ventana negra mientras se usa la tienda.
+
+Panel de administracion:
+- Abrir el archivo .env (se crea solo la primera vez) y completar
+  ADMIN_USER y ADMIN_PASSWORD con cualquier usuario y clave.
+- Volver a abrir INICIAR-TIENDA.bat y entrar a http://localhost:8080/admin
+
+Los pagos con Mercado Pago no estan configurados en esta copia de prueba.

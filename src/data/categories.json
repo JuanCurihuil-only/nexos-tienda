@@ -1,0 +1,120 @@
+[
+  {
+    "slug": "herramientas",
+    "name": "Herramientas",
+    "seoTitle": "Herramientas a batería Total e Ingco en Córdoba | Nexos",
+    "seoDescription": "Kits y herramientas a batería Total e Ingco, baterías, niveles láser, balanzas y soldadoras. 6 cuotas sin interés y envíos a todo el país desde Córdoba.",
+    "intro": "Kits combinados, herramientas a batería, baterías de repuesto y equipamiento para el taller y la obra. Trabajamos marcas Total e Ingco con garantía oficial de 6 meses."
+  },
+  {
+    "slug": "kits-herramientas-a-bateria",
+    "name": "Kits de herramientas a batería",
+    "parent": "herramientas",
+    "seoTitle": "Kits de herramientas a batería Total e Ingco | Nexos",
+    "seoDescription": "Kits 2, 3, 4, 5 y 9 en 1 con taladro, amoladora, rotomartillo y llave de impacto a batería Total e Ingco. 28% off con transferencia y 6 cuotas sin interés.",
+    "intro": "Combos que comparten la misma batería: taladros, amoladoras, rotomartillos, llaves de impacto, sopladoras y linternas en un solo kit. Comprando el kit pagás menos que por cada herramienta suelta."
+  },
+  {
+    "slug": "herramientas-a-bateria",
+    "name": "Herramientas a batería",
+    "parent": "herramientas",
+    "seoTitle": "Herramientas a batería individuales | Nexos Córdoba",
+    "seoDescription": "Taladros, amoladoras, lijadoras e hidrolavadoras a batería Total e Ingco. Pagá con transferencia con 28% off o en 6 cuotas sin interés.",
+    "intro": "Herramientas inalámbricas para sumar a tu equipo o empezar de cero, con batería y cargador según cada modelo."
+  },
+  {
+    "slug": "baterias",
+    "name": "Baterías",
+    "parent": "herramientas",
+    "seoTitle": "Baterías 20V Total para herramientas | Nexos",
+    "seoDescription": "Baterías de litio Total 20V de 4Ah y 5Ah para herramientas a batería Total. Envíos a todo el país desde Córdoba.",
+    "intro": "Baterías de repuesto para seguir trabajando sin cortes."
+  },
+  {
+    "slug": "herramientas-manuales",
+    "name": "Medición y herramientas manuales",
+    "parent": "herramientas",
+    "seoTitle": "Niveles láser y herramientas de medición | Nexos",
+    "seoDescription": "Niveles láser de 2 y 5 líneas, cinta métrica láser y clavadoras. Comprá en Nexos con 28% off pagando con transferencia.",
+    "intro": "Niveles láser, cintas métricas y herramientas para medir y fijar con precisión."
+  },
+  {
+    "slug": "balanzas-y-soldadoras",
+    "name": "Balanzas y soldadoras",
+    "parent": "herramientas",
+    "seoTitle": "Balanzas industriales y soldadoras inverter | Nexos",
+    "seoDescription": "Balanzas industriales de plataforma de 150 y 300 kg y soldadora inverter Total 130A. Envíos a todo el país desde Córdoba.",
+    "intro": "Equipamiento para el comercio, el depósito y el taller."
+  },
+  {
+    "slug": "electronica",
+    "name": "Electrónica",
+    "seoTitle": "Electrónica: auriculares, smartwatch y gaming | Nexos",
+    "seoDescription": "Auriculares, smartwatch, parlantes, consolas, discos SSD, movilidad eléctrica y gadgets. 6 cuotas sin interés y envíos a todo el país desde Córdoba.",
+    "intro": "Tecnología para todos los días: auriculares inalámbricos y gamer, relojes inteligentes, parlantes, consolas retro y accesorios, almacenamiento, TV y movilidad eléctrica. Pagando con transferencia tenés 28% de descuento."
+  },
+  {
+    "slug": "auriculares",
+    "name": "Auriculares",
+    "parent": "electronica",
+    "seoTitle": "Auriculares inalámbricos, gamer y deportivos | Nexos",
+    "seoDescription": "Auriculares Haylou, Xiaomi Redmi Buds, Huawei Freebuds, Onikuma, Logitech Astro y auriculares óseos sumergibles. 6 cuotas sin interés.",
+    "intro": "Auriculares in-ear con cancelación de ruido, headsets gamer con micrófono y auriculares de conducción ósea para deporte y natación."
+  },
+  {
+    "slug": "smartwatch",
+    "name": "Smartwatch",
+    "parent": "electronica",
+    "seoTitle": "Smartwatch Haylou, Mibro y Blackview | Nexos Córdoba",
+    "seoDescription": "Relojes inteligentes Haylou Solar 5, Mibro Watch Lite 3 Pro, Blackview y T800 Ultra 2. Comprá con 28% off con transferencia o en 6 cuotas.",
+    "intro": "Relojes inteligentes para medir actividad, recibir notificaciones y acompañarte todo el día."
+  },
+  {
+    "slug": "consolas-y-gaming",
+    "name": "Consolas y gaming",
+    "parent": "electronica",
+    "seoTitle": "Consolas retro, joysticks y monitores gamer | Nexos",
+    "seoDescription": "Game Stick con miles de juegos retro, PlayStation 5, joysticks DualSense y PS4 y monitores gamer Xiaomi de 180 Hz. Envíos a todo el país.",
+    "intro": "Consolas, joysticks y monitores para armar o mejorar tu setup gamer."
+  },
+  {
+    "slug": "parlantes",
+    "name": "Parlantes",
+    "parent": "electronica",
+    "seoTitle": "Parlantes portátiles JBL, Xiaomi y Ecopower | Nexos",
+    "seoDescription": "Parlantes portátiles y de alta potencia: JBL Flip 7, Xiaomi Mi Sound Outdoor y Ecopower. 6 cuotas sin interés y envíos desde Córdoba.",
+    "intro": "Parlantes portátiles y de alta potencia para casa, reuniones y eventos."
+  },
+  {
+    "slug": "almacenamiento",
+    "name": "Discos y almacenamiento",
+    "parent": "electronica",
+    "seoTitle": "Discos SSD Sandisk y discos externos WD | Nexos",
+    "seoDescription": "Discos sólidos externos Sandisk Extreme, SSD MagSafe para celular y discos externos Western Digital. Comprá en Nexos Córdoba.",
+    "intro": "Discos externos y SSD portátiles para respaldar fotos, videos y trabajo."
+  },
+  {
+    "slug": "movilidad-electrica",
+    "name": "Movilidad eléctrica",
+    "parent": "electronica",
+    "seoTitle": "Hoverboards, kartings y triciclos eléctricos | Nexos",
+    "seoDescription": "Hoverboards, hoverkart, kartings, mini motos y triciclos de drift eléctricos Keen, Foston e Interbrass. 6 cuotas sin interés.",
+    "intro": "Hoverboards, kartings, triciclos de drift y mini motos eléctricas."
+  },
+  {
+    "slug": "tv-y-streaming",
+    "name": "TV y streaming",
+    "parent": "electronica",
+    "seoTitle": "Smart TV 4K y Xiaomi Mi TV Stick | Nexos Córdoba",
+    "seoDescription": "Smart TV Ecopower 65 pulgadas 4K y Xiaomi Mi TV Stick 4K. Comprá con transferencia con 28% off o en 6 cuotas sin interés.",
+    "intro": "Televisores y dispositivos para ver tus plataformas de streaming."
+  },
+  {
+    "slug": "hogar-y-gadgets",
+    "name": "Hogar y gadgets",
+    "parent": "electronica",
+    "seoTitle": "Gadgets y hogar inteligente Xiaomi | Nexos Córdoba",
+    "seoDescription": "Aspiradora robot y freidora de aire Xiaomi, compresor portátil, gafas con IA, tablet y reflector solar. Envíos a todo el país.",
+    "intro": "Electrodomésticos inteligentes y gadgets para la casa y el día a día."
+  }
+]
