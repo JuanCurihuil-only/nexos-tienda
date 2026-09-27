@@ -18,6 +18,8 @@ const googleErrors: Record<string, string> = {
   config: "Falta configurar el ingreso con Google en el servidor.",
   denied: "Cancelaste el ingreso con Google.",
   forbidden: "Esa cuenta de Google no está autorizada para el panel.",
+  state: "Se perdió la sesión del ingreso. Volvé a intentar en esta misma ventana.",
+  token: "Google no aceptó la conexión. Revisá el secreto y las direcciones de redirección.",
   invalid: "El ingreso con Google no se pudo confirmar. Probá de nuevo.",
 };
 
