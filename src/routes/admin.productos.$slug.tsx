@@ -28,9 +28,32 @@ import {
 } from "@/lib/products";
 
 function parseMoney(value: string) {
-  const trimmed = value.trim();
+  const trimmed = value.trim().replace(/\$/g, "").replace(/\s/g, "");
   if (!trimmed) return null;
-  const amount = Math.round(Number(trimmed.replace(/\./g, "").replace(",", ".")));
+
+  const lastComma = trimmed.lastIndexOf(",");
+  const lastDot = trimmed.lastIndexOf(".");
+  let normalized = trimmed;
+
+  if (lastComma !== -1 && lastDot !== -1) {
+    normalized =
+      lastComma > lastDot
+        ? trimmed.replace(/\./g, "").replace(",", ".")
+        : trimmed.replace(/,/g, "");
+  } else if (lastComma !== -1) {
+    const fraction = trimmed.slice(lastComma + 1);
+    normalized =
+      fraction.length > 0 && fraction.length <= 2
+        ? trimmed.replace(",", ".")
+        : trimmed.replace(/,/g, "");
+  } else if (lastDot !== -1) {
+    const parts = trimmed.split(".");
+    const fraction = parts.at(-1) ?? "";
+    const isDecimal = parts.length === 2 && fraction.length > 0 && fraction.length <= 2;
+    normalized = isDecimal ? trimmed : trimmed.replace(/\./g, "");
+  }
+
+  const amount = Math.round(Number(normalized));
   if (!Number.isFinite(amount) || amount <= 0) return undefined;
   return amount;
 }

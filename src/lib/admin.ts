@@ -64,7 +64,8 @@ export const adminDashboard = createServerFn({ method: "GET" }).handler(async ()
   const [cat, orders] = await Promise.all([store.readCatalog(), listOrders()]);
   return {
     products: cat.products.length,
-    available: cat.products.filter((p) => p.available && p.priceCard != null).length,
+    available: cat.products.filter((p) => p.available && p.priceCard != null && p.stock > 0)
+      .length,
     categories: cat.categories.length,
     pending: orders.filter(
       (o) => o.status === "pendiente_transferencia" || o.status === "pendiente_pago",

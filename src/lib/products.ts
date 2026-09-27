@@ -119,11 +119,11 @@ export function applyTransferPercent(percent: number | null | undefined) {
   transferPercent = normalizeDiscountPercent(percent);
 }
 
-/** Precio de efectivo para un porcentaje concreto, sin cambiar el descuento vigente. */
+/** Precio de efectivo para un porcentaje concreto, redondeado al millar más cercano. */
 export function transferPriceAt(priceCard: number | null, percent: number) {
   if (priceCard == null) return null;
   const rate = normalizeDiscountPercent(percent) / 100;
-  return Math.round(priceCard * (1 - rate));
+  return Math.round((priceCard * (1 - rate)) / 1000) * 1000;
 }
 
 /** Precio sugerido de efectivo: el de cuotas menos el descuento general. */

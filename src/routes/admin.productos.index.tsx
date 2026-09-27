@@ -12,6 +12,10 @@ export const Route = createFileRoute("/admin/productos/")({
 
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
+function forSale(p: { available: boolean; priceCard: number | null; stock: number }) {
+  return p.available && p.priceCard != null && p.stock > 0;
+}
+
 function ProductList() {
   const { products, categories } = Route.useLoaderData();
   const [q, setQ] = useState("");
@@ -26,8 +30,8 @@ function ProductList() {
       !cat || c === cat || categories.find((x) => x.slug === c)?.parent === cat;
     return products.filter((p) => {
       if (!inCat(p.category)) return false;
-      if (stock === "si" && !(p.available && p.priceCard != null)) return false;
-      if (stock === "no" && p.available && p.priceCard != null) return false;
+      if (stock === "si" && !forSale(p)) return false;
+      if (stock === "no" && forSale(p)) return false;
       const hay = norm(`${p.name} ${p.brand ?? ""}`);
       return terms.every((t) => hay.includes(t));
     });
@@ -79,7 +83,7 @@ function ProductList() {
       <p className="mt-4 text-sm text-muted-foreground">{list.length} resultados</p>
       <ul className="mt-2 space-y-2">
         {list.map((p) => {
-          const onSale = p.available && p.priceCard != null;
+          const onSale = forSale(p);
           return (
             <li key={p.slug}>
               <Link
