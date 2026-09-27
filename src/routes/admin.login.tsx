@@ -19,6 +19,11 @@ const googleErrors: Record<string, string> = {
   denied: "Cancelaste el ingreso con Google.",
   forbidden: "Esa cuenta de Google no está autorizada para el panel.",
   state: "Se perdió la sesión del ingreso. Volvé a intentar en esta misma ventana.",
+  invalid_client:
+    "El secreto de Google no coincide. Volvé a copiarlo completo desde Credenciales.",
+  redirect_uri_mismatch:
+    "Falta esta dirección en Google: http://localhost:8080/api/admin/google/callback",
+  invalid_grant: "Ese ingreso ya venció. Tocá Entrar con Google otra vez.",
   token: "Google no aceptó la conexión. Revisá el secreto y las direcciones de redirección.",
   invalid: "El ingreso con Google no se pudo confirmar. Probá de nuevo.",
 };

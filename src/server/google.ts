@@ -87,8 +87,12 @@ export async function finishGoogleLogin(request: Request) {
     error_description?: string;
   };
   if (!tokenRes.ok || !token.id_token) {
+    const reason =
+      token.error === "invalid_client" || token.error === "redirect_uri_mismatch" || token.error === "invalid_grant"
+        ? token.error
+        : "token";
     console.error("[google] token", token.error ?? tokenRes.status);
-    return redirect("/admin/login?error=token");
+    return redirect(`/admin/login?error=${reason}`);
   }
 
   const infoRes = await fetch(
