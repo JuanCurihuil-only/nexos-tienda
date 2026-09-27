@@ -32,8 +32,10 @@ import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.in
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminProductosIndexRouteImport } from './routes/admin.productos.index'
 import { Route as AdminProductosSlugRouteImport } from './routes/admin.productos.$slug'
+import { Route as ApiAdminGoogleRouteImport } from './routes/api.admin.google'
 import { Route as ApiAdminRespaldoRouteImport } from './routes/api.admin.respaldo'
 import { Route as ApiMercadopagoWebhookRouteImport } from './routes/api.mercadopago.webhook'
+import { Route as ApiAdminGoogleCallbackRouteImport } from './routes/api.admin.google.callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -150,6 +152,11 @@ const AdminProductosSlugRoute = AdminProductosSlugRouteImport.update({
   path: '/productos/$slug',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiAdminGoogleRoute = ApiAdminGoogleRouteImport.update({
+  id: '/api/admin/google',
+  path: '/api/admin/google',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminRespaldoRoute = ApiAdminRespaldoRouteImport.update({
   id: '/api/admin/respaldo',
   path: '/api/admin/respaldo',
@@ -159,6 +166,11 @@ const ApiMercadopagoWebhookRoute = ApiMercadopagoWebhookRouteImport.update({
   id: '/api/mercadopago/webhook',
   path: '/api/mercadopago/webhook',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminGoogleCallbackRoute = ApiAdminGoogleCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => ApiAdminGoogleRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -183,10 +195,12 @@ export interface FileRoutesByFullPath {
   '/productos/': typeof ProductosIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/productos/$slug': typeof AdminProductosSlugRoute
+  '/api/admin/google': typeof ApiAdminGoogleRouteWithChildren
   '/api/admin/respaldo': typeof ApiAdminRespaldoRoute
   '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/productos/': typeof AdminProductosIndexRoute
+  '/api/admin/google/callback': typeof ApiAdminGoogleCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -209,10 +223,12 @@ export interface FileRoutesByTo {
   '/productos': typeof ProductosIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/productos/$slug': typeof AdminProductosSlugRoute
+  '/api/admin/google': typeof ApiAdminGoogleRouteWithChildren
   '/api/admin/respaldo': typeof ApiAdminRespaldoRoute
   '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/admin/productos': typeof AdminProductosIndexRoute
+  '/api/admin/google/callback': typeof ApiAdminGoogleCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -237,10 +253,12 @@ export interface FileRoutesById {
   '/productos/': typeof ProductosIndexRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/productos/$slug': typeof AdminProductosSlugRoute
+  '/api/admin/google': typeof ApiAdminGoogleRouteWithChildren
   '/api/admin/respaldo': typeof ApiAdminRespaldoRoute
   '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/productos/': typeof AdminProductosIndexRoute
+  '/api/admin/google/callback': typeof ApiAdminGoogleCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -266,10 +284,12 @@ export interface FileRouteTypes {
     | '/productos/'
     | '/admin/pedidos/$id'
     | '/admin/productos/$slug'
+    | '/api/admin/google'
     | '/api/admin/respaldo'
     | '/api/mercadopago/webhook'
     | '/admin/pedidos/'
     | '/admin/productos/'
+    | '/api/admin/google/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -292,10 +312,12 @@ export interface FileRouteTypes {
     | '/productos'
     | '/admin/pedidos/$id'
     | '/admin/productos/$slug'
+    | '/api/admin/google'
     | '/api/admin/respaldo'
     | '/api/mercadopago/webhook'
     | '/admin/pedidos'
     | '/admin/productos'
+    | '/api/admin/google/callback'
   id:
     | '__root__'
     | '/'
@@ -319,10 +341,12 @@ export interface FileRouteTypes {
     | '/productos/'
     | '/admin/pedidos/$id'
     | '/admin/productos/$slug'
+    | '/api/admin/google'
     | '/api/admin/respaldo'
     | '/api/mercadopago/webhook'
     | '/admin/pedidos/'
     | '/admin/productos/'
+    | '/api/admin/google/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -340,6 +364,7 @@ export interface RootRouteChildren {
   ProductoSlugRoute: typeof ProductoSlugRoute
   ProductosSlugRoute: typeof ProductosSlugRoute
   ProductosIndexRoute: typeof ProductosIndexRoute
+  ApiAdminGoogleRoute: typeof ApiAdminGoogleRouteWithChildren
   ApiAdminRespaldoRoute: typeof ApiAdminRespaldoRoute
   ApiMercadopagoWebhookRoute: typeof ApiMercadopagoWebhookRoute
 }
@@ -507,6 +532,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProductosSlugRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/admin/google': {
+      id: '/api/admin/google'
+      path: '/api/admin/google'
+      fullPath: '/api/admin/google'
+      preLoaderRoute: typeof ApiAdminGoogleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/respaldo': {
       id: '/api/admin/respaldo'
       path: '/api/admin/respaldo'
@@ -520,6 +552,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/mercadopago/webhook'
       preLoaderRoute: typeof ApiMercadopagoWebhookRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/google/callback': {
+      id: '/api/admin/google/callback'
+      path: '/callback'
+      fullPath: '/api/admin/google/callback'
+      preLoaderRoute: typeof ApiAdminGoogleCallbackRouteImport
+      parentRoute: typeof ApiAdminGoogleRoute
     }
   }
 }
@@ -550,6 +589,18 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface ApiAdminGoogleRouteChildren {
+  ApiAdminGoogleCallbackRoute: typeof ApiAdminGoogleCallbackRoute
+}
+
+const ApiAdminGoogleRouteChildren: ApiAdminGoogleRouteChildren = {
+  ApiAdminGoogleCallbackRoute: ApiAdminGoogleCallbackRoute,
+}
+
+const ApiAdminGoogleRouteWithChildren = ApiAdminGoogleRoute._addFileChildren(
+  ApiAdminGoogleRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -565,6 +616,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductoSlugRoute: ProductoSlugRoute,
   ProductosSlugRoute: ProductosSlugRoute,
   ProductosIndexRoute: ProductosIndexRoute,
+  ApiAdminGoogleRoute: ApiAdminGoogleRouteWithChildren,
   ApiAdminRespaldoRoute: ApiAdminRespaldoRoute,
   ApiMercadopagoWebhookRoute: ApiMercadopagoWebhookRoute,
 }

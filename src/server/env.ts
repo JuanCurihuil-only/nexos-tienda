@@ -3,18 +3,37 @@
  * En desarrollo se cargan del archivo .env (ver .env.example).
  * En producción se configuran en el panel del hosting.
  */
+import { readFileSync } from "node:fs";
+
 let loaded = false;
 
-export function env(name: string): string | undefined {
-  if (!loaded) {
-    loaded = true;
-    try {
-      const p = process as unknown as { loadEnvFile?: (path?: string) => void };
-      p.loadEnvFile?.(".env");
-    } catch {
-      /* sin archivo .env: se usan las variables del sistema */
+function loadLocalEnv() {
+  if (loaded) return;
+  loaded = true;
+  try {
+    const text = readFileSync(".env", "utf8");
+    for (const line of text.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eq = trimmed.indexOf("=");
+      if (eq <= 0) continue;
+      const key = trimmed.slice(0, eq).trim();
+      let value = trimmed.slice(eq + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      if (!process.env[key]?.trim()) process.env[key] = value;
     }
+  } catch {
+    /* sin archivo .env: se usan las variables del sistema */
   }
+}
+
+export function env(name: string): string | undefined {
+  loadLocalEnv();
   const v = process.env[name];
   return v && v.trim() ? v.trim() : undefined;
 }

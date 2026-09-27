@@ -24,8 +24,13 @@ async function guard() {
 /* ------------------------------ Sesión ------------------------------ */
 
 export const adminSession = createServerFn({ method: "GET" }).handler(async () => {
-  const { adminConfigured, isAdmin } = await import("@/server/auth");
-  return { configured: adminConfigured(), loggedIn: await isAdmin() };
+  const { adminConfigured, googleConfigured, isAdmin, passwordConfigured } = await import("@/server/auth");
+  return {
+    configured: adminConfigured(),
+    google: googleConfigured(),
+    password: passwordConfigured(),
+    loggedIn: await isAdmin(),
+  };
 });
 
 export const adminLogin = createServerFn({ method: "POST" })

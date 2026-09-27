@@ -1,6 +1,6 @@
 /**
- * Acceso al panel: usuario y contraseña del archivo .env
- * (ADMIN_USER y ADMIN_PASSWORD). La sesión se guarda en una cookie firmada.
+ * Admin access: password (ADMIN_USER / ADMIN_PASSWORD) or an allowlisted Google account.
+ * The session is an httpOnly signed cookie.
  */
 import { deleteCookie, getCookie, getRequestUrl, setCookie } from "@tanstack/react-start/server";
 import { env } from "./env";
@@ -12,6 +12,23 @@ function credentials() {
   const user = env("ADMIN_USER");
   const pass = env("ADMIN_PASSWORD");
   return user && pass ? { user, pass } : null;
+}
+
+export function allowedGoogleEmails() {
+  return new Set(
+    (env("ADMIN_GOOGLE_EMAILS") ?? "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+export function googleConfigured() {
+  return Boolean(env("GOOGLE_CLIENT_ID") && env("GOOGLE_CLIENT_SECRET") && allowedGoogleEmails().size);
+}
+
+function sessionSecret() {
+  return env("ADMIN_PASSWORD") ?? env("GOOGLE_CLIENT_SECRET");
 }
 
 async function hmac(text: string, secret: string) {
@@ -36,8 +53,54 @@ function safeEqual(a: string, b: string) {
   return r === 0;
 }
 
-export function adminConfigured() {
+export function passwordConfigured() {
   return credentials() !== null;
+}
+
+export function adminConfigured() {
+  return passwordConfigured() || googleConfigured();
+}
+
+function encodePayload(identity: string, exp: number) {
+  const bytes = new TextEncoder().encode(JSON.stringify({ sub: identity, exp }));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+}
+
+function decodePayload(payload: string): { sub: string; exp: number } | null {
+  try {
+    const pad = (4 - (payload.length % 4)) % 4;
+    const padded = payload.replaceAll("-", "+").replaceAll("_", "/") + "=".repeat(pad);
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    const data = JSON.parse(new TextDecoder().decode(bytes)) as { sub?: unknown; exp?: unknown };
+    if (typeof data.sub !== "string" || typeof data.exp !== "number") return null;
+    return { sub: data.sub, exp: data.exp };
+  } catch {
+    return null;
+  }
+}
+
+function identityAllowed(identity: string) {
+  const adminUser = env("ADMIN_USER");
+  if (adminUser && identity === adminUser) return true;
+  return allowedGoogleEmails().has(identity.toLowerCase());
+}
+
+export async function startAdminSession(identity: string) {
+  const secret = sessionSecret();
+  if (!secret) throw new Error("El panel no tiene una clave para firmar la sesión.");
+  const exp = Date.now() + DAYS * 86_400_000;
+  const payload = encodePayload(identity, exp);
+  const token = `${payload}.${await hmac(payload, secret)}`;
+  setCookie(COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: getRequestUrl().protocol === "https:",
+    path: "/",
+    maxAge: DAYS * 86_400,
+  });
 }
 
 export async function login(user: string, pass: string) {
@@ -47,19 +110,10 @@ export async function login(user: string, pass: string) {
       "El panel no está configurado: completá ADMIN_USER y ADMIN_PASSWORD en el archivo .env",
     );
   if (!safeEqual(user.trim(), c.user) || !safeEqual(pass, c.pass)) {
-    await new Promise((r) => setTimeout(r, 600)); // frena intentos repetidos
+    await new Promise((r) => setTimeout(r, 600));
     return false;
   }
-  const exp = Date.now() + DAYS * 86_400_000;
-  const payload = `${c.user}.${exp}`;
-  const token = `${payload}.${await hmac(payload, c.pass + c.user)}`;
-  setCookie(COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: getRequestUrl().protocol === "https:",
-    path: "/",
-    maxAge: DAYS * 86_400,
-  });
+  await startAdminSession(c.user);
   return true;
 }
 
@@ -68,15 +122,16 @@ export function logout() {
 }
 
 export async function isAdmin() {
-  const c = credentials();
+  const secret = sessionSecret();
   const token = getCookie(COOKIE);
-  if (!c || !token) return false;
+  if (!secret || !token) return false;
   const i = token.lastIndexOf(".");
+  if (i <= 0) return false;
   const payload = token.slice(0, i);
   const sig = token.slice(i + 1);
-  const [user, exp] = payload.split(".");
-  if (user !== c.user || !exp || Number(exp) < Date.now()) return false;
-  return safeEqual(sig, await hmac(payload, c.pass + c.user));
+  const data = decodePayload(payload);
+  if (!data || data.exp < Date.now() || !identityAllowed(data.sub)) return false;
+  return safeEqual(sig, await hmac(payload, secret));
 }
 
 export async function requireAdmin() {
