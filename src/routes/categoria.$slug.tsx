@@ -127,7 +127,12 @@ function CategoriaPage() {
       )}
 
       <div className="mt-6">
-        <CatalogView key={category.slug} list={list} />
+        <CatalogView
+          key={category.slug}
+          list={list}
+          defaultOnlyStock={!category.parent}
+          defaultSort={category.parent ? "relevancia" : "mayor-precio"}
+        />
       </div>
     </div>
   );

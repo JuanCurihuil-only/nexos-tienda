@@ -7,17 +7,23 @@ type Sort = "relevancia" | "menor-precio" | "mayor-precio" | "nombre";
 
 const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
+const inStock = (p: Product) => isPurchasable(p) && p.stock > 0;
+
 export function CatalogView({
   list,
   initialQuery = "",
+  defaultOnlyStock = false,
+  defaultSort = "relevancia",
 }: {
   list: Product[];
   initialQuery?: string;
+  defaultOnlyStock?: boolean;
+  defaultSort?: Sort;
 }) {
   const [q, setQ] = useState(initialQuery);
   const [brand, setBrand] = useState("todas");
-  const [onlyStock, setOnlyStock] = useState(false);
-  const [sort, setSort] = useState<Sort>("relevancia");
+  const [onlyStock, setOnlyStock] = useState(defaultOnlyStock);
+  const [sort, setSort] = useState<Sort>(defaultSort);
 
   const brands = useMemo(
     () =>
@@ -29,7 +35,7 @@ export function CatalogView({
     const terms = normalize(q).split(/\s+/).filter(Boolean);
     let r = list.filter((p) => {
       if (brand !== "todas" && p.brand !== brand) return false;
-      if (onlyStock && !isPurchasable(p)) return false;
+      if (onlyStock && !inStock(p)) return false;
       if (terms.length) {
         const hay = normalize(`${p.name} ${p.brand ?? ""} ${p.short}`);
         return terms.every((t) => hay.includes(t));
@@ -42,7 +48,7 @@ export function CatalogView({
       r = [...r].sort((a, b) => (b.priceTransfer ?? -1) - (a.priceTransfer ?? -1));
     if (sort === "nombre") r = [...r].sort((a, b) => a.name.localeCompare(b.name));
     // Siempre primero lo que hay en stock
-    return [...r].sort((a, b) => Number(isPurchasable(b)) - Number(isPurchasable(a)));
+    return [...r].sort((a, b) => Number(inStock(b)) - Number(inStock(a)));
   }, [list, q, brand, onlyStock, sort]);
 
   return (
