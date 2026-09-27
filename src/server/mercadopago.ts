@@ -78,8 +78,16 @@ export async function createPreference(order: Order, origin: string) {
   order.mp = { ...(order.mp ?? {}), preferenceId: pref.id };
   await saveOrder(order);
 
-  const useSandbox = token().startsWith("TEST-") && pref.sandbox_init_point;
+  const useSandbox = sandboxMode() && pref.sandbox_init_point;
   return useSandbox ? pref.sandbox_init_point! : pref.init_point;
+}
+
+/** Test credentials now start with APP_USR, so the prefix alone is not enough. */
+function sandboxMode() {
+  const flag = env("MP_SANDBOX");
+  if (flag === "true" || flag === "1") return true;
+  if (flag === "false" || flag === "0") return false;
+  return token().startsWith("TEST-");
 }
 
 type MpPayment = {
