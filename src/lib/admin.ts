@@ -7,6 +7,7 @@ import {
   applyTransferPercent,
   cashPrice,
   DEFAULT_TRANSFER_PERCENT,
+  normalizeDiscountPercent,
   transferPrice,
   type Category,
   type RawProduct,
@@ -283,16 +284,17 @@ export const adminBulkPrice = createServerFn({ method: "POST" })
   });
 
 export const adminSetTransferDiscount = createServerFn({ method: "POST" })
-  .validator((d: unknown) => z.object({ percent: z.number().int().min(0).max(90) }).parse(d))
+  .validator((d: unknown) => z.object({ percent: z.number().min(0).max(90) }).parse(d))
   .handler(async ({ data }) => {
     const store = await guard();
     const cat = await store.readCatalog();
+    const percent = normalizeDiscountPercent(data.percent);
     await store.writeCatalog({
       ...cat,
-      settings: { ...cat.settings, transferDiscount: data.percent },
+      settings: { ...cat.settings, transferDiscount: percent },
     });
-    applyTransferPercent(data.percent);
-    return { percent: data.percent };
+    applyTransferPercent(percent);
+    return { percent };
   });
 
 /* ----------------------------- Categorías --------------------------- */

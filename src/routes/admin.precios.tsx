@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { Button, Card, Field, PageTitle, Select, TextInput, useToast } from "@/components/admin/ui";
 import { adminBulkPrice, adminProducts, adminSetTransferDiscount } from "@/lib/admin";
 import { invalidateCatalog } from "@/lib/catalog";
-import { formatPrice, transferPriceAt } from "@/lib/products";
+import { formatPrice, normalizeDiscountPercent, transferPriceAt } from "@/lib/products";
 
 export const Route = createFileRoute("/admin/precios")({
   loader: () => adminProducts(),
@@ -85,12 +85,14 @@ function Precios() {
     setBusy(false);
   }
 
-  const discountNum = Number(discount.replace(",", "."));
+  const discountNum = normalizeDiscountPercent(Number(discount.replace(",", ".")));
+  const sameDiscount = Math.round(discountNum * 100) === Math.round(transferDiscount * 100);
   const discountOk =
-    Number.isInteger(discountNum) &&
+    discount.trim() !== "" &&
+    Number.isFinite(Number(discount.replace(",", "."))) &&
     discountNum >= 0 &&
     discountNum <= 90 &&
-    discountNum !== transferDiscount;
+    !sameDiscount;
 
   function previewDiscount() {
     if (!discountOk) return;
@@ -148,7 +150,7 @@ function Precios() {
           <Field label="Descuento general en efectivo / transferencia" htmlFor="discount">
             <TextInput
               id="discount"
-              inputMode="numeric"
+              inputMode="decimal"
               value={discount}
               onChange={(e) => {
                 setDiscount(e.target.value);
@@ -166,8 +168,9 @@ function Precios() {
           </Button>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Hoy es {transferDiscount}%. Solo afecta a los productos sin un precio de efectivo propio.
-          Del 0 al 90.
+          Hoy es {transferDiscount.toLocaleString("es-AR", { maximumFractionDigits: 2 })}%. Acepta
+          decimales, por ejemplo 28,67. Solo afecta a los productos sin un precio de efectivo
+          propio. Del 0 al 90.
         </p>
       </Card>
       {discountRows && (

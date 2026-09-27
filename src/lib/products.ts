@@ -104,19 +104,25 @@ export let catalogLoaded = false;
 
 let transferPercent = DEFAULT_TRANSFER_PERCENT;
 
+/** Porcentaje de descuento entre 0 y 90, con hasta 2 decimales. */
+export function normalizeDiscountPercent(percent: number) {
+  const clamped = Math.min(90, Math.max(0, percent));
+  return Math.round(clamped * 100) / 100;
+}
+
 /** Aplica el descuento general guardado en el panel (o el de fábrica si no hay). */
 export function applyTransferPercent(percent: number | null | undefined) {
   if (percent == null || !Number.isFinite(percent)) {
     transferPercent = DEFAULT_TRANSFER_PERCENT;
     return;
   }
-  transferPercent = Math.min(90, Math.max(0, Math.round(percent)));
+  transferPercent = normalizeDiscountPercent(percent);
 }
 
 /** Precio de efectivo para un porcentaje concreto, sin cambiar el descuento vigente. */
 export function transferPriceAt(priceCard: number | null, percent: number) {
   if (priceCard == null) return null;
-  const rate = Math.min(90, Math.max(0, Math.round(percent))) / 100;
+  const rate = normalizeDiscountPercent(percent) / 100;
   return Math.round(priceCard * (1 - rate));
 }
 

@@ -4,7 +4,13 @@
  * The first successful read copies JSON from .data/ (or src/data/) once.
  */
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
-import type { CatalogData, Category, RawProduct, StoreSettings } from "../lib/products";
+import {
+  normalizeDiscountPercent,
+  type CatalogData,
+  type Category,
+  type RawProduct,
+  type StoreSettings,
+} from "../lib/products";
 import type { Order } from "./orders";
 import { env } from "./env";
 
@@ -84,7 +90,7 @@ async function createTables() {
     CREATE TABLE IF NOT EXISTS store_settings (
       id text PRIMARY KEY,
       hero jsonb NOT NULL DEFAULT '{}'::jsonb,
-      transfer_discount integer
+      transfer_discount numeric(5, 2)
     )
   `;
   await query`
@@ -116,7 +122,12 @@ async function createTables() {
   `;
   await query`
     ALTER TABLE store_settings
-    ADD COLUMN IF NOT EXISTS transfer_discount integer
+    ADD COLUMN IF NOT EXISTS transfer_discount numeric(5, 2)
+  `;
+  await query`
+    ALTER TABLE store_settings
+    ALTER COLUMN transfer_discount TYPE numeric(5, 2)
+    USING transfer_discount::numeric(5, 2)
   `;
   await query`
     ALTER TABLE orders
@@ -321,14 +332,19 @@ export async function fetchCatalog(): Promise<CatalogData> {
   const categories = categoryRows as unknown as CategoryRow[];
   const storedSettings = settingsRows as unknown as {
     hero: StoreSettings["hero"];
-    transfer_discount: number | null;
+    transfer_discount: number | string | null;
   }[];
 
   const stored = storedSettings[0];
   const hero = stored?.hero;
+  const rawDiscount = stored?.transfer_discount;
+  const storedDiscount =
+    rawDiscount == null || rawDiscount === "" ? Number.NaN : Number(rawDiscount);
   const settings: StoreSettings = {
     ...(hero && Object.keys(hero).length > 0 ? { hero } : {}),
-    ...(stored?.transfer_discount != null ? { transferDiscount: stored.transfer_discount } : {}),
+    ...(Number.isFinite(storedDiscount)
+      ? { transferDiscount: normalizeDiscountPercent(storedDiscount) }
+      : {}),
   };
 
   return {
