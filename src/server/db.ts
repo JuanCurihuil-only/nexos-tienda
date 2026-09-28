@@ -6,6 +6,7 @@
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import {
   normalizeDiscountPercent,
+  packageMeasure,
   type CatalogData,
   type Category,
   type RawProduct,
@@ -133,6 +134,10 @@ async function createTables() {
     ALTER TABLE orders
     ADD COLUMN IF NOT EXISTS stock_applied boolean NOT NULL DEFAULT false
   `;
+  await query`ALTER TABLE products ADD COLUMN IF NOT EXISTS weight_kg numeric(8, 2)`;
+  await query`ALTER TABLE products ADD COLUMN IF NOT EXISTS height_cm numeric(8, 2)`;
+  await query`ALTER TABLE products ADD COLUMN IF NOT EXISTS width_cm numeric(8, 2)`;
+  await query`ALTER TABLE products ADD COLUMN IF NOT EXISTS length_cm numeric(8, 2)`;
   await query`
     CREATE TABLE IF NOT EXISTS app_meta (
       key text PRIMARY KEY,
@@ -222,6 +227,10 @@ export async function saveCatalog(data: CatalogData) {
     short: product.short ?? "",
     images: product.images ?? [],
     variants: product.variants ?? [],
+    weight_kg: packageMeasure(product.weightKg),
+    height_cm: packageMeasure(product.heightCm),
+    width_cm: packageMeasure(product.widthCm),
+    length_cm: packageMeasure(product.lengthCm),
     position,
   }));
   const categoryRows = data.categories.map((category, position) => ({
@@ -266,9 +275,11 @@ export async function saveCatalog(data: CatalogData) {
     if (productRows.length > 0) {
       statements.push(txn`
         INSERT INTO products (
-          slug, name, brand, category, price_card, price_transfer, stock, available, short, images, variants, position
+          slug, name, brand, category, price_card, price_transfer, stock, available, short, images, variants,
+          weight_kg, height_cm, width_cm, length_cm, position
         )
-        SELECT slug, name, brand, category, price_card, price_transfer, stock, available, short, images, variants, position
+        SELECT slug, name, brand, category, price_card, price_transfer, stock, available, short, images, variants,
+          weight_kg, height_cm, width_cm, length_cm, position
         FROM jsonb_to_recordset(${JSON.stringify(productRows)}::jsonb) AS row(
           slug text,
           name text,
@@ -281,6 +292,10 @@ export async function saveCatalog(data: CatalogData) {
           short text,
           images jsonb,
           variants jsonb,
+          weight_kg numeric,
+          height_cm numeric,
+          width_cm numeric,
+          length_cm numeric,
           position int
         )
       `);
@@ -301,6 +316,10 @@ type ProductRow = {
   short: string;
   images: RawProduct["images"];
   variants: RawProduct["variants"];
+  weight_kg: number | string | null;
+  height_cm: number | string | null;
+  width_cm: number | string | null;
+  length_cm: number | string | null;
 };
 
 type CategoryRow = {
@@ -317,7 +336,8 @@ export async function fetchCatalog(): Promise<CatalogData> {
   const query = sql();
   const [productRows, categoryRows, settingsRows] = await Promise.all([
     query`
-      SELECT slug, name, brand, category, price_card, price_transfer, stock, available, short, images, variants
+      SELECT slug, name, brand, category, price_card, price_transfer, stock, available, short, images, variants,
+        weight_kg, height_cm, width_cm, length_cm
       FROM products
       ORDER BY position
     `,
@@ -360,6 +380,10 @@ export async function fetchCatalog(): Promise<CatalogData> {
       short: product.short,
       images: product.images ?? [],
       variants: product.variants ?? [],
+      weightKg: packageMeasure(product.weight_kg),
+      heightCm: packageMeasure(product.height_cm),
+      widthCm: packageMeasure(product.width_cm),
+      lengthCm: packageMeasure(product.length_cm),
     })),
     categories: categories.map((category) => ({
       slug: category.slug,

@@ -126,6 +126,10 @@ const productInput = z.object({
     )
     .max(40),
   description: z.string().max(20000).optional(),
+  weightKg: z.number().positive().max(500).nullable(),
+  heightCm: z.number().positive().max(400).nullable(),
+  widthCm: z.number().positive().max(400).nullable(),
+  lengthCm: z.number().positive().max(400).nullable(),
 });
 
 export const adminSaveProduct = createServerFn({ method: "POST" })
@@ -181,6 +185,10 @@ export const adminSaveProduct = createServerFn({ method: "POST" })
       images: data.images,
       variants: data.variants,
       short: data.short || (firstLine.length > 150 ? `${firstLine.slice(0, 147)}…` : firstLine),
+      weightKg: data.weightKg,
+      heightCm: data.heightCm,
+      widthCm: data.widthCm,
+      lengthCm: data.lengthCm,
     };
 
     const products = [...cat.products];

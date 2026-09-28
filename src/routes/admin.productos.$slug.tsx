@@ -21,11 +21,22 @@ import {
   formatPrice,
   INSTALLMENTS,
   installmentValue,
+  packageMeasure,
   productDiscountPercent,
   transferPrice,
   type ProductImage,
   type Variant,
 } from "@/lib/products";
+
+function measureText(value: number | null | undefined) {
+  return value != null && value > 0 ? String(value) : "";
+}
+
+function parseMeasure(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return packageMeasure(trimmed) ?? undefined;
+}
 
 function parseMoney(value: string) {
   const trimmed = value.trim().replace(/\$/g, "").replace(/\s/g, "");
@@ -90,6 +101,10 @@ function ProductEditor() {
   const [variants, setVariants] = useState<Variant[]>(product?.variants ?? []);
   const [desc, setDesc] = useState(description);
   const [short, setShort] = useState(product?.short ?? "");
+  const [weight, setWeight] = useState(measureText(product?.weightKg));
+  const [height, setHeight] = useState(measureText(product?.heightCm));
+  const [width, setWidth] = useState(measureText(product?.widthCm));
+  const [length, setLength] = useState(measureText(product?.lengthCm));
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(0);
 
@@ -143,6 +158,18 @@ function ProductEditor() {
     if (cardPrice != null && cashPriceValue != null && cashPriceValue > cardPrice) {
       return toast.error("El precio en efectivo no puede ser mayor que el de cuotas.");
     }
+    const weightKg = parseMeasure(weight);
+    const heightCm = parseMeasure(height);
+    const widthCm = parseMeasure(width);
+    const lengthCm = parseMeasure(length);
+    if (
+      weightKg === undefined ||
+      heightCm === undefined ||
+      widthCm === undefined ||
+      lengthCm === undefined
+    ) {
+      return toast.error("El peso y las medidas tienen que ser números mayores a 0, o quedar vacíos.");
+    }
     setBusy(true);
     try {
       const r = await save({
@@ -159,6 +186,10 @@ function ProductEditor() {
           images,
           variants,
           description: desc,
+          weightKg,
+          heightCm,
+          widthCm,
+          lengthCm,
         },
       });
       invalidateCatalog();
@@ -387,6 +418,48 @@ function ProductEditor() {
                 </p>
               </div>
             )}
+            <h2 className="pt-2 text-lg font-bold">Paquete para el envío</h2>
+            <p className="text-sm text-muted-foreground">
+              Peso y medidas del bulto. Sirven para cotizar Correo Argentino y Andreani.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Peso (kg)" htmlFor="weight">
+                <TextInput
+                  id="weight"
+                  inputMode="decimal"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  placeholder="Ej: 2.5"
+                />
+              </Field>
+              <Field label="Alto (cm)" htmlFor="height">
+                <TextInput
+                  id="height"
+                  inputMode="decimal"
+                  value={height}
+                  onChange={(e) => setHeight(e.target.value)}
+                  placeholder="Ej: 20"
+                />
+              </Field>
+              <Field label="Ancho (cm)" htmlFor="width">
+                <TextInput
+                  id="width"
+                  inputMode="decimal"
+                  value={width}
+                  onChange={(e) => setWidth(e.target.value)}
+                  placeholder="Ej: 30"
+                />
+              </Field>
+              <Field label="Profundidad (cm)" htmlFor="length">
+                <TextInput
+                  id="length"
+                  inputMode="decimal"
+                  value={length}
+                  onChange={(e) => setLength(e.target.value)}
+                  placeholder="Ej: 15"
+                />
+              </Field>
+            </div>
             {variants.length === 0 && (
               <Field label="Stock (unidades)" htmlFor="stock">
                 <TextInput

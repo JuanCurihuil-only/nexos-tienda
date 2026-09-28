@@ -48,7 +48,23 @@ export type Product = {
   images: ProductImage[];
   variants: Variant[];
   short: string;
+  /** Package weight in kilograms. Null when it has not been measured. */
+  weightKg?: number | null;
+  /** Package height in centimeters. */
+  heightCm?: number | null;
+  /** Package width in centimeters. */
+  widthCm?: number | null;
+  /** Package depth in centimeters. */
+  lengthCm?: number | null;
 };
+
+/** A positive package measure, or null when it is missing or zero. */
+export function packageMeasure(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const n = typeof value === "number" ? value : Number(String(value).replace(",", "."));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n * 100) / 100;
+}
 
 export type Category = {
   slug: string;
