@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { isPurchasable, type Product } from "@/lib/products";
+import { isKit, isPurchasable, showPublicPrice, type Product } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 import { Price } from "./Price";
 
@@ -53,7 +53,11 @@ export function ProductCard({
         </h3>
 
         <div className="mt-auto pt-2">
-          <Price product={product} />
+          {showPublicPrice(product) || !isKit(product) ? (
+            <Price product={product} />
+          ) : (
+            <p className="text-sm font-semibold text-muted-foreground">Sin stock</p>
+          )}
           {buyable && !needsVariant && (
             <button
               type="button"

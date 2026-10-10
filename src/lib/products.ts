@@ -271,6 +271,17 @@ export function isPurchasable(p: Product) {
   return p.available && unitsInStock(p) > 0 && p.priceCard != null && p.priceTransfer != null;
 }
 
+/** Kit de herramientas: el precio público solo se muestra si hay stock. */
+export function isKit(p: { name: string; category: string }) {
+  return p.category === "kits-herramientas-a-bateria" || /^kit\b/i.test(p.name.trim());
+}
+
+export function showPublicPrice(p: Product) {
+  if (p.priceCard == null || p.priceTransfer == null) return false;
+  if (isKit(p) && !isPurchasable(p)) return false;
+  return true;
+}
+
 export function whatsappLink(text?: string) {
   return `https://wa.me/${WHATSAPP_NUMBER}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
 }

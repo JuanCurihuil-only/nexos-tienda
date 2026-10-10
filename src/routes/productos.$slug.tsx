@@ -11,9 +11,11 @@ import {
   absoluteUrl,
   categoryTrail,
   getProduct,
+  isKit,
   isPurchasable,
   productsByCategory,
   publishedDiscountPercent,
+  showPublicPrice,
   WARRANTY_MONTHS,
   whatsappLink,
   type Product,
@@ -75,7 +77,7 @@ function seoDescription(p: Product) {
 
 function productJsonLd(p: Product, url: string, description: string[]) {
   const offers =
-    p.priceCard != null && p.priceTransfer != null
+    showPublicPrice(p)
       ? {
           "@type": "Offer",
           url,
@@ -238,7 +240,9 @@ function ProductoPage() {
           <h1 className="mt-2 text-2xl font-extrabold leading-tight sm:text-3xl">{product.name}</h1>
 
           <div className="mt-5 rounded-2xl border border-border bg-card p-5">
-            <Price product={product} size="lg" />
+            {(showPublicPrice(product) || !isKit(product)) && (
+              <Price product={product} size="lg" />
+            )}
 
             <p
               className={`mt-4 text-sm font-semibold ${buyable ? "text-success" : "text-destructive"}`}
