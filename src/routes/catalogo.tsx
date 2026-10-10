@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Breadcrumbs, breadcrumbJsonLd } from "@/components/site/Breadcrumbs";
 import { CatalogView } from "@/components/site/CatalogView";
-import { absoluteUrl, products, topCategories } from "@/lib/products";
+import { absoluteUrl, products, publishedDiscountPercent, topCategories } from "@/lib/products";
 
 const TITLE = "Todos los productos | Nexos Córdoba";
-const DESCRIPTION =
-  "Catálogo completo de Nexos: kits y herramientas a batería Total e Ingco, auriculares, smartwatch, gaming y electrónica. 28% OFF con transferencia.";
+
+function catalogDescription() {
+  return `Catálogo completo de Nexos: kits y herramientas a batería Total e Ingco, auriculares, smartwatch, gaming y electrónica. ${publishedDiscountPercent()}% OFF con transferencia.`;
+}
 
 export const Route = createFileRoute("/catalogo")({
   validateSearch: (search: Record<string, unknown>): { q?: string | undefined } => ({
@@ -14,9 +16,9 @@ export const Route = createFileRoute("/catalogo")({
   head: () => ({
     meta: [
       { title: TITLE },
-      { name: "description", content: DESCRIPTION },
+      { name: "description", content: catalogDescription() },
       { property: "og:title", content: TITLE },
-      { property: "og:description", content: DESCRIPTION },
+      { property: "og:description", content: catalogDescription() },
       { property: "og:url", content: absoluteUrl("/catalogo") },
     ],
     links: [{ rel: "canonical", href: absoluteUrl("/catalogo") }],

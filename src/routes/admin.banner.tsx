@@ -15,7 +15,7 @@ import {
 import { adminSaveHero, adminUploadImage } from "@/lib/admin";
 import { getCatalog, invalidateCatalog } from "@/lib/catalog";
 import { bannerPhotos } from "@/lib/image-resize";
-import { DEFAULT_HERO_SUBTITLE, DEFAULT_HERO_TITLE } from "@/lib/products";
+import { DEFAULT_HERO_SUBTITLE, defaultHeroTitle, withCurrentDiscount } from "@/lib/products";
 
 export const Route = createFileRoute("/admin/banner")({
   loader: () => getCatalog(),
@@ -76,7 +76,7 @@ function Banner() {
               rows={2}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={DEFAULT_HERO_TITLE}
+              placeholder={defaultHeroTitle()}
             />
           </Field>
           <Field label="Subtítulo" htmlFor="s">
@@ -128,7 +128,7 @@ function Banner() {
             <div className="p-6">
               <p className="eyebrow text-accent">Nexos · Córdoba</p>
               <p className="mt-2 font-display text-2xl font-extrabold leading-tight">
-                {title || DEFAULT_HERO_TITLE}
+                {withCurrentDiscount(title || defaultHeroTitle())}
               </p>
               <p className="mt-3 inline-block rounded-lg bg-success px-3 py-1.5 text-sm font-extrabold uppercase text-white">
                 6 cuotas sin interés

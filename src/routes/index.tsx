@@ -7,11 +7,12 @@ import heroSmall from "@/assets/hero-tools-800.webp";
 import { ProductCard } from "@/components/site/ProductCard";
 import {
   DEFAULT_HERO_SUBTITLE,
-  DEFAULT_HERO_TITLE,
   settings,
   absoluteUrl,
-  discountPercent,
+  defaultHeroTitle,
   getCategory,
+  publishedDiscountPercent,
+  withCurrentDiscount,
   INSTALLMENTS,
   isPurchasable,
   productsByCategory,
@@ -21,16 +22,18 @@ import {
 } from "@/lib/products";
 
 const TITLE = "Nexos | Herramientas a batería y electrónica en Córdoba";
-const DESCRIPTION =
-  "Kits de herramientas a batería Total e Ingco, auriculares, smartwatch y más. 28% OFF con transferencia, 6 cuotas sin interés y envíos a todo el país.";
+
+function homeDescription() {
+  return `Kits de herramientas a batería Total e Ingco, auriculares, smartwatch y más. ${publishedDiscountPercent()}% OFF con transferencia, 6 cuotas sin interés y envíos a todo el país.`;
+}
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: TITLE },
-      { name: "description", content: DESCRIPTION },
+      { name: "description", content: homeDescription() },
       { property: "og:title", content: TITLE },
-      { property: "og:description", content: DESCRIPTION },
+      { property: "og:description", content: homeDescription() },
       { property: "og:url", content: absoluteUrl("/") },
     ],
     links: [{ rel: "canonical", href: absoluteUrl("/") }],
@@ -50,24 +53,26 @@ const SPARKS = [
   { left: "92%", bottom: "14%", delay: "1.5s", dx: "-40px" },
 ];
 
-const benefits = [
-  {
-    icon: CreditCard,
-    title: `${INSTALLMENTS} cuotas sin interés`,
-    text: "Con tarjeta de crédito.",
-  },
-  {
-    icon: BadgePercent,
-    title: `${discountPercent()}% OFF`,
-    text: "Pagando con transferencia o efectivo.",
-  },
-  { icon: Truck, title: "Envíos a todo el país", text: "Despachamos desde Córdoba." },
-  {
-    icon: ShieldCheck,
-    title: `Garantía ${WARRANTY_MONTHS} meses`,
-    text: "Y asesoramiento antes y después de comprar.",
-  },
-];
+function benefits() {
+  return [
+    {
+      icon: CreditCard,
+      title: `${INSTALLMENTS} cuotas sin interés`,
+      text: "Con tarjeta de crédito.",
+    },
+    {
+      icon: BadgePercent,
+      title: `${publishedDiscountPercent()}% OFF`,
+      text: "Pagando con transferencia o efectivo.",
+    },
+    { icon: Truck, title: "Envíos a todo el país", text: "Despachamos desde Córdoba." },
+    {
+      icon: ShieldCheck,
+      title: `Garantía ${WARRANTY_MONTHS} meses`,
+      text: "Y asesoramiento antes y después de comprar.",
+    },
+  ];
+}
 
 /** Destacados: productos con stock, ordenados según el orden de las subcategorías. */
 function featured(slug: string, n = 8) {
@@ -91,7 +96,9 @@ function CategoryHero({ slug }: { slug: string }) {
       <div className="relative z-10 max-w-[60%]">
         <p className="eyebrow text-primary">{count} productos</p>
         <h2 className="mt-2 text-2xl font-extrabold sm:text-3xl">{c.name}</h2>
-        <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{c.intro}</p>
+        <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
+          {withCurrentDiscount(c.intro)}
+        </p>
         <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary">
           Ver todo <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </span>
@@ -150,7 +157,7 @@ function Shelf({ slug, title }: { slug: string; title: string }) {
 
 function Index() {
   const h = settings.hero ?? {};
-  const heroTitle = h.title || DEFAULT_HERO_TITLE;
+  const heroTitle = withCurrentDiscount(h.title || defaultHeroTitle());
   const heroSubtitle = h.subtitle || DEFAULT_HERO_SUBTITLE;
   const heroImg = h.image ?? { lg: hero, sm: heroSmall };
   return (
@@ -237,7 +244,7 @@ function Index() {
 
       <section className="border-b border-border bg-card" aria-label="Beneficios">
         <ul className="mx-auto grid max-w-7xl gap-5 px-4 py-8 sm:grid-cols-2 lg:grid-cols-4">
-          {benefits.map((b) => (
+          {benefits().map((b) => (
             <li key={b.title} className="flex gap-3">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <b.icon className="h-5 w-5" aria-hidden />

@@ -12,7 +12,7 @@ import { InstagramIcon, TikTokIcon, WhatsAppIcon } from "@/components/site/Brand
 import { Breadcrumbs, breadcrumbJsonLd } from "@/components/site/Breadcrumbs";
 import {
   absoluteUrl,
-  discountPercent,
+  publishedDiscountPercent,
   INSTAGRAM_URL,
   INSTALLMENTS,
   TIKTOK_URL,
@@ -214,7 +214,7 @@ function Contacto() {
             <li className="flex gap-3">
               <BadgePercent className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
               <div>
-                <p className="font-semibold">{discountPercent()}% OFF</p>
+                <p className="font-semibold">{publishedDiscountPercent()}% OFF</p>
                 <p className="text-sm text-muted-foreground">
                   Pagando con transferencia o efectivo.
                 </p>

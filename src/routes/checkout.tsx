@@ -6,7 +6,7 @@ import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { Installments } from "@/components/site/Price";
 import { useCart } from "@/lib/cart";
 import { createOrder, quoteShipping, type ShippingChoice } from "@/lib/checkout";
-import { discountPercent, formatPrice, INSTALLMENTS } from "@/lib/products";
+import { formatPrice, INSTALLMENTS, publishedDiscountPercent } from "@/lib/products";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -207,7 +207,7 @@ function Checkout() {
                     id: "transferencia",
                     icon: Banknote,
                     title: "Transferencia bancaria o efectivo",
-                    text: `${discountPercent()}% OFF en los productos`,
+                    text: `${publishedDiscountPercent()}% OFF en los productos`,
                   },
                   {
                     id: "mercadopago",

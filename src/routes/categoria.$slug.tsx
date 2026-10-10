@@ -9,6 +9,7 @@ import {
   productsByCategory,
   shareImage,
   subcategories,
+  withCurrentDiscount,
 } from "@/lib/products";
 
 export const Route = createFileRoute("/categoria/$slug")({
@@ -36,9 +37,9 @@ export const Route = createFileRoute("/categoria/$slug")({
     return {
       meta: [
         { title: c.seoTitle },
-        { name: "description", content: c.seoDescription },
+        { name: "description", content: withCurrentDiscount(c.seoDescription) },
         { property: "og:title", content: c.seoTitle },
-        { property: "og:description", content: c.seoDescription },
+        { property: "og:description", content: withCurrentDiscount(c.seoDescription) },
         { property: "og:url", content: url },
         // Vista previa al compartir: logo Nexos (herramientas) o NEX-GO (electrónica)
         { property: "og:image", content: shareImage(categoryBrand(c.slug)) },
@@ -59,7 +60,7 @@ export const Route = createFileRoute("/categoria/$slug")({
             "@context": "https://schema.org",
             "@type": "CollectionPage",
             name: c.name,
-            description: c.seoDescription,
+            description: withCurrentDiscount(c.seoDescription),
             url,
             mainEntity: {
               "@type": "ItemList",
@@ -97,7 +98,7 @@ function CategoriaPage() {
 
       <header className="mt-4 max-w-3xl">
         <h1 className="text-3xl font-extrabold sm:text-4xl">{category.name}</h1>
-        <p className="mt-3 text-muted-foreground">{category.intro}</p>
+        <p className="mt-3 text-muted-foreground">{withCurrentDiscount(category.intro)}</p>
       </header>
 
       {(subs.length > 0 || siblings.length > 0) && (

@@ -14,7 +14,7 @@ import {
 } from "@/components/admin/ui";
 import { adminCategories, adminDeleteCategory, adminSaveCategory } from "@/lib/admin";
 import { invalidateCatalog } from "@/lib/catalog";
-import type { Category } from "@/lib/products";
+import { withCurrentDiscount, type Category } from "@/lib/products";
 
 export const Route = createFileRoute("/admin/categorias")({
   loader: () => adminCategories(),
@@ -34,7 +34,11 @@ function Editor({
 }) {
   const save = useServerFn(adminSaveCategory);
   const toast = useToast();
-  const [c, setC] = useState<Category>(initial);
+  const [c, setC] = useState<Category>({
+    ...initial,
+    seoDescription: withCurrentDiscount(initial.seoDescription),
+    intro: withCurrentDiscount(initial.intro),
+  });
   const [busy, setBusy] = useState(false);
   const set = (k: keyof Category, v: string) => setC((prev) => ({ ...prev, [k]: v }));
 

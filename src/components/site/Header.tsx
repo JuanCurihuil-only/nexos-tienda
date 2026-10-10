@@ -6,7 +6,7 @@ import logoNexgo from "@/assets/logo-nexgo.webp";
 import { InstagramBadge, TikTokBadge } from "./BrandIcons";
 import {
   brandForPath,
-  discountPercent,
+  publishedDiscountPercent,
   INSTAGRAM_URL,
   INSTALLMENTS,
   TIKTOK_URL,
@@ -82,7 +82,7 @@ export function Header() {
             <span className="rounded-full bg-success px-2.5 py-0.5 font-bold text-white">
               {INSTALLMENTS} CUOTAS SIN INTERÉS
             </span>
-            <span className="hidden sm:inline">{discountPercent()}% OFF con transferencia</span>
+            <span className="hidden sm:inline">{publishedDiscountPercent()}% OFF con transferencia</span>
             <span aria-hidden className="hidden sm:inline">
               ·
             </span>

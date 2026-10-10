@@ -171,6 +171,14 @@ export const adminSaveProduct = createServerFn({ method: "POST" })
     const firstLine =
       lines.find((l) => l.length > 25 && !l.endsWith(":"))?.replace(/^[-•*]\s*/, "") ?? "";
 
+    const variants = data.variants.map((variant) => ({
+      ...variant,
+      available: variant.stock > 0 && variant.available,
+    }));
+    const stock = variants.length
+      ? variants.reduce((sum, variant) => sum + (variant.available ? variant.stock : 0), 0)
+      : data.stock;
+
     const product: RawProduct = {
       slug,
       name: data.name,
@@ -178,12 +186,10 @@ export const adminSaveProduct = createServerFn({ method: "POST" })
       category: data.category,
       priceCard: data.priceCard,
       priceTransfer,
-      stock: data.variants.length
-        ? data.variants.reduce((a, v) => a + (v.available ? v.stock : 0), 0)
-        : data.stock,
-      available: data.available,
+      stock,
+      available: stock > 0 && data.available,
       images: data.images,
-      variants: data.variants,
+      variants,
       short: data.short || (firstLine.length > 150 ? `${firstLine.slice(0, 147)}…` : firstLine),
       weightKg: data.weightKg,
       heightCm: data.heightCm,

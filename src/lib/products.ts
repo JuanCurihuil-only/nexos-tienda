@@ -21,9 +21,7 @@ export const TRANSFER_DISCOUNT = DEFAULT_TRANSFER_PERCENT / 100;
 export const INSTALLMENTS = 6;
 export const WARRANTY_MONTHS = 6;
 
-/** Textos de fábrica del banner (se pueden cambiar desde el panel). */
-export const DEFAULT_HERO_TITLE =
-  "Herramientas a batería y tecnología, con 28% OFF pagando con transferencia";
+/** Subtítulo de fábrica del banner (se puede cambiar desde el panel). */
 export const DEFAULT_HERO_SUBTITLE =
   "Kits Total e Ingco, auriculares, smartwatch, gaming y más. Envíos a todo el país.";
 
@@ -241,13 +239,36 @@ export function installmentValue(priceCard: number) {
   return Math.round(priceCard / INSTALLMENTS);
 }
 
-/** Descuento general que se ofrece en los textos de la tienda. */
+/** Descuento general exacto (puede tener decimales, por ejemplo 28,67). */
 export function discountPercent() {
   return transferPercent;
 }
 
+/** Porcentaje que ve el cliente. 28,67 se publica como 29, igual que en las fichas. */
+export function publishedDiscountPercent() {
+  return Math.round(transferPercent);
+}
+
+/** Título de fábrica del banner, siempre con el descuento vigente. */
+export function defaultHeroTitle() {
+  return `Herramientas a batería y tecnología, con ${publishedDiscountPercent()}% OFF pagando con transferencia`;
+}
+
+/** Cambia cualquier porcentaje escrito en un texto por el descuento vigente. */
+export function withCurrentDiscount(text: string) {
+  const label = `${publishedDiscountPercent()}%`;
+  return text.replace(/\d+(?:[.,]\d+)?\s*%/g, label);
+}
+
+export function unitsInStock(p: { stock: number; variants: Variant[] }) {
+  if (p.variants.length > 0) {
+    return p.variants.reduce((sum, variant) => sum + (variant.available && variant.stock > 0 ? variant.stock : 0), 0);
+  }
+  return p.stock > 0 ? p.stock : 0;
+}
+
 export function isPurchasable(p: Product) {
-  return p.available && p.priceCard != null && p.priceTransfer != null;
+  return p.available && unitsInStock(p) > 0 && p.priceCard != null && p.priceTransfer != null;
 }
 
 export function whatsappLink(text?: string) {

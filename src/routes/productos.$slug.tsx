@@ -13,6 +13,7 @@ import {
   getProduct,
   isPurchasable,
   productsByCategory,
+  publishedDiscountPercent,
   WARRANTY_MONTHS,
   whatsappLink,
   type Product,
@@ -65,7 +66,7 @@ function seoTitle(p: Product) {
 function seoDescription(p: Product) {
   const parts = [
     p.short || p.name,
-    isPurchasable(p) ? "28% OFF con transferencia y 6 cuotas sin interés." : "",
+    isPurchasable(p) ? `${publishedDiscountPercent()}% OFF con transferencia y 6 cuotas sin interés.` : "",
     "Envíos a todo el país desde Córdoba.",
   ].filter(Boolean);
   const text = parts.join(" ");

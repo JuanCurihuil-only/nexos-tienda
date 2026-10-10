@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { InstagramBadge, TikTokBadge, WhatsAppIcon } from "./BrandIcons";
 import {
-  discountPercent,
+  publishedDiscountPercent,
   INSTAGRAM_URL,
   INSTALLMENTS,
   subcategories,
@@ -19,7 +19,7 @@ export function Footer() {
         <div className="lg:col-span-2">
           <p className="font-display text-xl font-bold">Nexos</p>
           <p className="mt-3 max-w-sm text-sm opacity-85">
-            Herramientas a batería Total e Ingco y electrónica en Córdoba. {discountPercent()}% OFF
+            Herramientas a batería Total e Ingco y electrónica en Córdoba. {publishedDiscountPercent()}% OFF
             pagando con transferencia o efectivo, {INSTALLMENTS} cuotas sin interés con tarjeta y
             garantía de {WARRANTY_MONTHS} meses.
           </p>

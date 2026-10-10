@@ -16,7 +16,7 @@ import { CartProvider } from "../lib/cart";
 import { Header } from "../components/site/Header";
 import { Footer } from "../components/site/Footer";
 import { CartDrawer } from "../components/site/CartDrawer";
-import { absoluteUrl, SITE_NAME, SITE_URL, SOCIAL_LINKS } from "../lib/products";
+import { absoluteUrl, publishedDiscountPercent, SITE_NAME, SITE_URL, SOCIAL_LINKS } from "../lib/products";
 import { ensureCatalog, hydrateCatalog } from "../lib/catalog";
 
 function NotFoundComponent() {
@@ -92,7 +92,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Herramientas a batería Total e Ingco y electrónica en Córdoba. 28% OFF con transferencia, 6 cuotas sin interés y envíos a todo el país.",
+          `Herramientas a batería Total e Ingco y electrónica en Córdoba. ${publishedDiscountPercent()}% OFF con transferencia, 6 cuotas sin interés y envíos a todo el país.`,
       },
       { name: "theme-color", content: "#1f2a3c" },
       { property: "og:site_name", content: SITE_NAME },

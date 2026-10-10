@@ -17,7 +17,7 @@ import { adminDeleteProduct, adminProduct, adminSaveProduct, adminUploadImage } 
 import { invalidateCatalog } from "@/lib/catalog";
 import { productPhoto } from "@/lib/image-resize";
 import {
-  discountPercent,
+  publishedDiscountPercent,
   formatPrice,
   INSTALLMENTS,
   installmentValue,
@@ -392,7 +392,7 @@ function ProductEditor() {
               hint={
                 cashCustom
                   ? "Precio propio de este producto. No cambia solo si editás las cuotas."
-                  : `Se sugiere el ${discountPercent()}% OFF. Cambialo si este producto tiene otro precio.`
+                  : `Se sugiere el ${publishedDiscountPercent()}% OFF. Cambialo si este producto tiene otro precio.`
               }
             >
               <TextInput
