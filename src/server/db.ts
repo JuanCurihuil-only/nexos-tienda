@@ -134,6 +134,7 @@ async function createTables() {
     ALTER TABLE orders
     ADD COLUMN IF NOT EXISTS stock_applied boolean NOT NULL DEFAULT false
   `;
+  await query`ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping jsonb`;
   await query`ALTER TABLE products ADD COLUMN IF NOT EXISTS weight_kg numeric(8, 2)`;
   await query`ALTER TABLE products ADD COLUMN IF NOT EXISTS height_cm numeric(8, 2)`;
   await query`ALTER TABLE products ADD COLUMN IF NOT EXISTS width_cm numeric(8, 2)`;
@@ -142,6 +143,13 @@ async function createTables() {
     CREATE TABLE IF NOT EXISTS app_meta (
       key text PRIMARY KEY,
       value jsonb NOT NULL
+    )
+  `;
+  await query`
+    CREATE TABLE IF NOT EXISTS media (
+      name text PRIMARY KEY,
+      content_type text NOT NULL,
+      data text NOT NULL
     )
   `;
 }
@@ -436,6 +444,7 @@ type OrderRow = {
   mp: Order["mp"] | null;
   history: Order["history"];
   stock_applied: boolean;
+  shipping: Order["shipping"] | null;
 };
 
 function toIso(value: string | Date) {
@@ -455,13 +464,14 @@ function mapOrder(row: OrderRow): Order {
     ...(row.mp ? { mp: row.mp } : {}),
     history: row.history ?? [],
     stockApplied: row.stock_applied === true,
+    ...(row.shipping ? { shipping: row.shipping } : {}),
   };
 }
 
 export async function persistOrder(order: Order) {
   await ensureSchema();
   await sql()`
-    INSERT INTO orders (id, created_at, updated_at, status, method, items, total, customer, mp, history)
+    INSERT INTO orders (id, created_at, updated_at, status, method, items, total, customer, shipping, mp, history)
     VALUES (
       ${order.id},
       ${order.createdAt},
@@ -471,6 +481,7 @@ export async function persistOrder(order: Order) {
       ${JSON.stringify(order.items)}::jsonb,
       ${order.total},
       ${JSON.stringify(order.customer)}::jsonb,
+      ${order.shipping ? JSON.stringify(order.shipping) : null}::jsonb,
       ${order.mp ? JSON.stringify(order.mp) : null}::jsonb,
       ${JSON.stringify(order.history)}::jsonb
     )
@@ -481,6 +492,7 @@ export async function persistOrder(order: Order) {
       items = EXCLUDED.items,
       total = EXCLUDED.total,
       customer = EXCLUDED.customer,
+      shipping = EXCLUDED.shipping,
       mp = EXCLUDED.mp,
       history = EXCLUDED.history
   `;
@@ -510,6 +522,29 @@ export async function releaseOrderStock(id: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+/** Fotos del panel. Van en la base porque el hosting no deja crear carpetas en disco. */
+export async function saveMediaBlob(name: string, contentType: string, base64: string) {
+  await ensureSchema();
+  await sql()`
+    INSERT INTO media (name, content_type, data)
+    VALUES (${name}, ${contentType}, ${base64})
+    ON CONFLICT (name) DO UPDATE
+      SET content_type = EXCLUDED.content_type, data = EXCLUDED.data
+  `;
+}
+
+export async function readMediaBlob(
+  name: string,
+): Promise<{ contentType: string; base64: string } | null> {
+  await ensureSchema();
+  const rows = (await sql()`
+    SELECT content_type, data FROM media WHERE name = ${name}
+  `) as { content_type: string; data: string }[];
+  const row = rows[0];
+  if (!row?.data) return null;
+  return { contentType: row.content_type, base64: row.data };
+}
+
 export async function deleteOrder(id: string) {
   await ensureSchema();
   await sql()`DELETE FROM orders WHERE id = ${id}`;
@@ -518,7 +553,7 @@ export async function deleteOrder(id: string) {
 export async function fetchOrder(id: string): Promise<Order | null> {
   await ensureSchema();
   const rows = (await sql()`
-    SELECT id, created_at, updated_at, status, method, items, total, customer, mp, history, stock_applied
+    SELECT id, created_at, updated_at, status, method, items, total, customer, shipping, mp, history, stock_applied
     FROM orders
     WHERE id = ${id}
   `) as OrderRow[];
@@ -529,7 +564,7 @@ export async function fetchOrder(id: string): Promise<Order | null> {
 export async function fetchOrders(): Promise<Order[]> {
   await ensureSchema();
   const rows = (await sql()`
-    SELECT id, created_at, updated_at, status, method, items, total, customer, mp, history, stock_applied
+    SELECT id, created_at, updated_at, status, method, items, total, customer, shipping, mp, history, stock_applied
     FROM orders
     ORDER BY created_at DESC
   `) as OrderRow[];

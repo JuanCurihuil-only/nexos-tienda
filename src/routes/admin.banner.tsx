@@ -98,7 +98,7 @@ function Banner() {
                 <ImageUp className="h-5 w-5" /> Subir imagen
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp,.avif,.heic,.heif,.tif,.tiff,.jfif"
                   className="sr-only"
                   disabled={busy}
                   onChange={(e) => void onFile(e.target.files?.[0])}

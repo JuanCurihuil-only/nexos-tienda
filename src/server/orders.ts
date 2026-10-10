@@ -32,6 +32,14 @@ export type Customer = {
   notas?: string | undefined;
 };
 
+export type OrderShipping = {
+  provider: string;
+  service: string;
+  label: string;
+  price: number;
+  postalCode: string;
+};
+
 export type Order = {
   id: string;
   createdAt: string;
@@ -41,6 +49,7 @@ export type Order = {
   items: OrderItem[];
   total: number;
   customer: Customer;
+  shipping?: OrderShipping;
   mp?: { preferenceId?: string; paymentId?: string; status?: string; statusDetail?: string };
   history: { at: string; status: OrderStatus; note?: string }[];
   /** Units were already taken from product stock. */

@@ -123,6 +123,12 @@ function PedidoPage() {
               <span className="shrink-0 font-semibold">{formatPrice(i.unitPrice * i.qty)}</span>
             </li>
           ))}
+          {order.shipping && (
+            <li className="flex justify-between gap-4 py-2">
+              <span>{order.shipping.label}</span>
+              <span className="shrink-0 font-semibold">{formatPrice(order.shipping.price)}</span>
+            </li>
+          )}
         </ul>
         <div className="mt-3 flex justify-between border-t border-border pt-3 font-bold">
           <span>
@@ -133,7 +139,9 @@ function PedidoPage() {
         <p className="mt-2 text-xs text-muted-foreground">
           Entrega:{" "}
           {order.entrega === "envio"
-            ? "envío a domicilio (costo a coordinar)"
+            ? order.shipping
+              ? `envío a domicilio · ${order.shipping.label}`
+              : "envío a domicilio"
             : "retiro en showroom"}
         </p>
       </section>

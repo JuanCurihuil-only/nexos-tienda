@@ -86,6 +86,12 @@ function Pedido() {
                   <span className="font-semibold">{formatPrice(i.unitPrice * i.qty)}</span>
                 </li>
               ))}
+              {o.shipping && (
+                <li className="flex justify-between gap-3 py-2">
+                  <span>{o.shipping.label}</span>
+                  <span className="font-semibold">{formatPrice(o.shipping.price)}</span>
+                </li>
+              )}
             </ul>
             <div className="mt-3 flex justify-between border-t border-border pt-3 text-lg font-extrabold">
               <span>

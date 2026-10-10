@@ -31,9 +31,41 @@ const orderInput = z.object({
     cp: z.string().trim().max(10).optional(),
     notas: z.string().trim().max(500).optional(),
   }),
+  shippingRateId: z.string().trim().min(3).max(80).optional(),
 });
 
 export type OrderInput = z.infer<typeof orderInput>;
+
+const quoteInput = z.object({
+  method: z.enum(["transferencia", "mercadopago"]),
+  postalCode: z.string().trim().max(10),
+  items: orderInput.shape.items,
+});
+
+export type ShippingChoice = {
+  id: string;
+  label: string;
+  price: number;
+  detail?: string;
+};
+
+export const quoteShipping = createServerFn({ method: "POST" })
+  .validator((data: unknown) => quoteInput.parse(data))
+  .handler(async ({ data }) => {
+    const { loadCatalogIntoModule } = await import("@/server/store");
+    await loadCatalogIntoModule();
+    const { quoteShipment } = await import("@/server/shipping/quote");
+    const quoted = await quoteShipment(data);
+    return {
+      rates: quoted.rates.map((rate) => ({
+        id: rate.id,
+        label: rate.label,
+        price: rate.price,
+        ...(rate.detail ? { detail: rate.detail } : {}),
+      })),
+      notices: quoted.notices,
+    };
+  });
 
 export const createOrder = createServerFn({ method: "POST" })
   .validator((data: unknown) => orderInput.parse(data))
@@ -65,6 +97,29 @@ export const createOrder = createServerFn({ method: "POST" })
       return { slug: p.slug, name: p.name, variant: variant?.name, qty: line.qty, unitPrice };
     });
 
+    const merchandise = items.reduce((sum, item) => sum + item.unitPrice * item.qty, 0);
+    let shipping: import("@/server/orders").OrderShipping | undefined;
+    if (data.customer.entrega === "envio") {
+      if (!data.shippingRateId) throw new Error("Elegí un envío.");
+      const { pricedRate } = await import("@/server/shipping/quote");
+      const postalCode = (data.customer.cp ?? "").replace(/\D/g, "");
+      const rate = await pricedRate(
+        {
+          items: data.items,
+          method: data.method,
+          postalCode,
+        },
+        data.shippingRateId,
+      );
+      shipping = {
+        provider: rate.provider,
+        service: rate.service,
+        label: rate.label,
+        price: rate.price,
+        postalCode,
+      };
+    }
+
     const now = new Date().toISOString();
     const status = data.method === "transferencia" ? "pendiente_transferencia" : "pendiente_pago";
     const order = {
@@ -74,8 +129,9 @@ export const createOrder = createServerFn({ method: "POST" })
       status,
       method: data.method,
       items,
-      total: items.reduce((a, i) => a + i.unitPrice * i.qty, 0),
+      total: merchandise + (shipping?.price ?? 0),
       customer: data.customer,
+      ...(shipping ? { shipping } : {}),
       history: [{ at: now, status }],
     } as import("@/server/orders").Order;
     await saveOrder(order);
@@ -124,6 +180,9 @@ export const fetchOrder = createServerFn({ method: "GET" })
       total: order.total,
       nombre: order.customer.nombre,
       entrega: order.customer.entrega,
+      shipping: order.shipping
+        ? { label: order.shipping.label, price: order.shipping.price }
+        : null,
       transfer:
         order.method === "transferencia"
           ? {

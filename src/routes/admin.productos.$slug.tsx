@@ -328,7 +328,7 @@ function ProductEditor() {
                   {uploading ? `Subiendo ${uploading}…` : "Agregar fotos"}
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp,.avif,.heic,.heif,.tif,.tiff,.jfif"
                     multiple
                     className="sr-only"
                     disabled={uploading > 0}

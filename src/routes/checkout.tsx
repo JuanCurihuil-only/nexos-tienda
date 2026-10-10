@@ -1,11 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Banknote, CreditCard, Lock } from "lucide-react";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { Installments } from "@/components/site/Price";
 import { useCart } from "@/lib/cart";
-import { createOrder } from "@/lib/checkout";
+import { createOrder, quoteShipping, type ShippingChoice } from "@/lib/checkout";
 import { discountPercent, formatPrice, INSTALLMENTS } from "@/lib/products";
 
 export const Route = createFileRoute("/checkout")({
@@ -46,11 +46,64 @@ function Checkout() {
   const { items, totalTransfer, totalCard, clear } = useCart();
   const navigate = useNavigate();
   const submit = useServerFn(createOrder);
+  const quote = useServerFn(quoteShipping);
   const [method, setMethod] = useState<Method>("transferencia");
   const [entrega, setEntrega] = useState<"envio" | "retiro">("envio");
+  const [cp, setCp] = useState("");
+  const [rates, setRates] = useState<ShippingChoice[]>([]);
+  const [notices, setNotices] = useState<string[]>([]);
+  const [quoting, setQuoting] = useState(false);
+  const [rateId, setRateId] = useState<string | null>(null);
+  const quoteTimer = useRef<number | undefined>(undefined);
+  const quoteSeq = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
+
+  function requestQuote(postal: string, pay: Method) {
+    window.clearTimeout(quoteTimer.current);
+    const digits = postal.replace(/\D/g, "");
+    if (digits.length !== 4) {
+      quoteSeq.current += 1;
+      setRates([]);
+      setNotices([]);
+      setRateId(null);
+      setQuoting(false);
+      return;
+    }
+    setQuoting(true);
+    quoteTimer.current = window.setTimeout(() => {
+      const seq = ++quoteSeq.current;
+      void quote({
+        data: {
+          method: pay,
+          postalCode: digits,
+          items: items.map((i) => ({
+            slug: i.product.slug,
+            ...(i.variant ? { variantId: i.variant.id } : {}),
+            qty: i.qty,
+          })),
+        },
+      })
+        .then((res) => {
+          if (seq !== quoteSeq.current) return;
+          setRates(res.rates);
+          setNotices(res.notices);
+          setRateId((current) =>
+            res.rates.some((rate) => rate.id === current) ? current : (res.rates[0]?.id ?? null),
+          );
+        })
+        .catch((err: unknown) => {
+          if (seq !== quoteSeq.current) return;
+          setRates([]);
+          setRateId(null);
+          setNotices([err instanceof Error ? err.message : "No se pudo cotizar el envío."]);
+        })
+        .finally(() => {
+          if (seq === quoteSeq.current) setQuoting(false);
+        });
+    }, 400);
+  }
 
   if (done) {
     return (
@@ -74,11 +127,18 @@ function Checkout() {
     );
   }
 
-  const total = method === "transferencia" ? totalTransfer : totalCard;
+  const shippingPrice =
+    entrega === "envio" ? (rates.find((rate) => rate.id === rateId)?.price ?? 0) : 0;
+  const productTotal = method === "transferencia" ? totalTransfer : totalCard;
+  const total = productTotal + shippingPrice;
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    if (entrega === "envio" && !rateId) {
+      setError(quoting ? "Esperá la cotización del envío." : "Elegí un envío para ese código postal.");
+      return;
+    }
     const f = new FormData(e.currentTarget);
     const get = (k: string) => {
       const v = String(f.get(k) ?? "").trim();
@@ -104,9 +164,10 @@ function Checkout() {
             direccion: get("direccion"),
             ciudad: get("ciudad"),
             provincia: get("provincia"),
-            cp: get("cp"),
+            cp: entrega === "envio" ? cp : get("cp"),
             notas: get("notas"),
           },
+          ...(entrega === "envio" && rateId ? { shippingRateId: rateId } : {}),
         },
       });
       setDone(true);
@@ -146,13 +207,13 @@ function Checkout() {
                     id: "transferencia",
                     icon: Banknote,
                     title: "Transferencia bancaria o efectivo",
-                    text: `${discountPercent()}% OFF · Total ${formatPrice(totalTransfer)}`,
+                    text: `${discountPercent()}% OFF en los productos`,
                   },
                   {
                     id: "mercadopago",
                     icon: CreditCard,
                     title: "Tarjeta, débito o dinero en cuenta (Mercado Pago)",
-                    text: `Total ${formatPrice(totalCard)} · hasta ${INSTALLMENTS} cuotas sin interés de ${formatPrice(Math.round(totalCard / INSTALLMENTS))}`,
+                    text: `Hasta ${INSTALLMENTS} cuotas sin interés`,
                   },
                 ] as const
               ).map((m) => (
@@ -167,7 +228,10 @@ function Checkout() {
                     name="metodo"
                     value={m.id}
                     checked={method === m.id}
-                    onChange={() => setMethod(m.id)}
+                    onChange={() => {
+                      setMethod(m.id);
+                      if (entrega === "envio") requestQuote(cp, m.id);
+                    }}
                     className="mt-1 h-5 w-5 accent-[var(--primary)]"
                   />
                   <m.icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
@@ -240,7 +304,7 @@ function Checkout() {
                   {
                     id: "envio",
                     title: "Envío a domicilio",
-                    text: "El costo se coordina por WhatsApp.",
+                    text: "Lo cotizamos con tu código postal.",
                   },
                   {
                     id: "retiro",
@@ -302,16 +366,58 @@ function Checkout() {
                     className={input}
                   />
                 </Field>
-                <Field id="cp" label="Código postal">
+                <Field id="cp" label="Código postal" hint="4 números. Con eso calculamos el envío.">
                   <input
                     id="cp"
                     name="cp"
                     required
                     inputMode="numeric"
                     autoComplete="postal-code"
+                    maxLength={8}
+                    value={cp}
+                    onChange={(event) => {
+                      setCp(event.target.value);
+                      requestQuote(event.target.value, method);
+                    }}
                     className={input}
                   />
                 </Field>
+                <div className="sm:col-span-2 space-y-2">
+                  {quoting && (
+                    <p className="text-sm text-muted-foreground">Cotizando envío…</p>
+                  )}
+                  {rates.map((rate) => (
+                    <label
+                      key={rate.id}
+                      className={`flex cursor-pointer items-start justify-between gap-3 rounded-xl border-2 p-3 ${
+                        rateId === rate.id ? "border-primary bg-primary/5" : "border-border"
+                      }`}
+                    >
+                      <span className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          name="envio"
+                          value={rate.id}
+                          checked={rateId === rate.id}
+                          onChange={() => setRateId(rate.id)}
+                          className="mt-1 h-5 w-5 accent-[var(--primary)]"
+                        />
+                        <span>
+                          <span className="block font-semibold">{rate.label}</span>
+                          {rate.detail && (
+                            <span className="block text-sm text-muted-foreground">{rate.detail}</span>
+                          )}
+                        </span>
+                      </span>
+                      <span className="shrink-0 font-bold">{formatPrice(rate.price)}</span>
+                    </label>
+                  ))}
+                  {notices.map((notice) => (
+                    <p key={notice} className="text-sm text-muted-foreground">
+                      {notice}
+                    </p>
+                  ))}
+                </div>
               </div>
             )}
             <div className="mt-4">
@@ -353,19 +459,31 @@ function Checkout() {
                 </li>
               ))}
             </ul>
-            <div className="mt-5 flex items-baseline justify-between border-t border-border pt-4">
+            <div className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
+              <div className="flex justify-between">
+                <span>Productos</span>
+                <span className="font-semibold">{formatPrice(productTotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Envío</span>
+                <span className="font-semibold">
+                  {entrega === "retiro"
+                    ? "Retiro sin cargo"
+                    : shippingPrice > 0
+                      ? formatPrice(shippingPrice)
+                      : "A cotizar"}
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 flex items-baseline justify-between">
               <span className="font-semibold">Total</span>
               <span className="font-display text-3xl font-extrabold">{formatPrice(total)}</span>
             </div>
-            <div className="mt-3">
-              <Installments priceCard={totalCard} />
-              {method === "transferencia" && (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Pagando con tarjeta de crédito, total {formatPrice(totalCard)}.
-                </p>
-              )}
-            </div>
-            <p className="mt-1 text-right text-xs text-muted-foreground">Envío no incluido</p>
+            {method === "mercadopago" && (
+              <div className="mt-3">
+                <Installments priceCard={total} />
+              </div>
+            )}
 
             {error && (
               <p
@@ -378,7 +496,7 @@ function Checkout() {
 
             <button
               type="submit"
-              disabled={sending}
+              disabled={sending || (entrega === "envio" && (quoting || !rateId))}
               className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-base font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
             >
               <Lock className="h-4 w-4" aria-hidden />

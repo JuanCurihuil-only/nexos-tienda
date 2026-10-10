@@ -210,23 +210,60 @@ export const adminDeleteProduct = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Recibe una foto ya achicada en el navegador (WebP en base64) y la guarda. */
+const IMAGE_EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "image/avif": "avif",
+  "image/bmp": "bmp",
+  "image/heic": "heic",
+  "image/heif": "heic",
+  "image/tiff": "tiff",
+  "image/x-icon": "ico",
+  "image/vnd.microsoft.icon": "ico",
+};
+
+/** Recibe una foto (cualquier formato de imagen) y la guarda. */
 export const adminUploadImage = createServerFn({ method: "POST" })
-  .validator((d: unknown) =>
-    z
+  .validator((d: unknown) => {
+    const parsed = z
       .object({
         base: z.string().max(80),
-        dataUrl: z.string().startsWith("data:image/webp;base64,").max(4_000_000),
-        w: z.number().int().positive().max(4000),
-        h: z.number().int().positive().max(4000),
+        dataUrl: z
+          .string()
+          .max(20_000_000)
+          .regex(/^data:image\/(?!svg)[a-z0-9.+-]+;base64,/i),
+        w: z.number().int().positive().max(8000),
+        h: z.number().int().positive().max(8000),
       })
-      .parse(d),
-  )
+      .safeParse(d);
+    if (!parsed.success) {
+      const tooBig = parsed.error.issues.some((issue) => issue.code === "too_big");
+      throw new Error(
+        tooBig
+          ? "La imagen es demasiado pesada. Probá con otra más chica."
+          : "No se pudo leer la imagen. Probá con JPG, PNG, WEBP, GIF o la foto de la cámara.",
+      );
+    }
+    return parsed.data;
+  })
   .handler(async ({ data }) => {
     const store = await guard();
-    const bytes = Uint8Array.from(atob(data.dataUrl.split(",")[1]!), (c) => c.charCodeAt(0));
-    const name = `${slugify(data.base) || "foto"}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}.webp`;
-    const src = await store.saveMedia(name, bytes);
+    const comma = data.dataUrl.indexOf(",");
+    const mime = /^data:(image\/[a-z0-9.+-]+);base64$/i.exec(data.dataUrl.slice(0, comma))?.[1]?.toLowerCase();
+    if (!mime || mime.includes("svg")) throw new Error("Ese formato de imagen no se puede usar.");
+    let bytes: Uint8Array;
+    try {
+      bytes = Uint8Array.from(atob(data.dataUrl.slice(comma + 1)), (c) => c.charCodeAt(0));
+    } catch {
+      throw new Error("No se pudo leer la imagen.");
+    }
+    if (!bytes.byteLength) throw new Error("La imagen está vacía.");
+    const ext = IMAGE_EXT[mime] ?? "img";
+    const name = `${slugify(data.base) || "foto"}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}.${ext}`;
+    const src = await store.saveMedia(name, bytes, mime);
     return { src, w: data.w, h: data.h };
   });
 

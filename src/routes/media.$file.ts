@@ -6,11 +6,11 @@ export const Route = createFileRoute("/media/$file")({
     handlers: {
       GET: async ({ params }) => {
         const { readMedia } = await import("@/server/store");
-        const bytes = await readMedia(params.file);
-        if (!bytes) return new Response("No encontrado", { status: 404 });
-        return new Response(bytes as unknown as BodyInit, {
+        const media = await readMedia(params.file);
+        if (!media) return new Response("No encontrado", { status: 404 });
+        return new Response(media.bytes as unknown as BodyInit, {
           headers: {
-            "content-type": "image/webp",
+            "content-type": media.contentType,
             "cache-control": "public, max-age=31536000, immutable",
           },
         });

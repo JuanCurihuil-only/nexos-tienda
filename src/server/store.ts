@@ -1,9 +1,18 @@
 /**
  * Store data lives in Neon Postgres.
- * Photos uploaded from the admin panel stay on disk under DATA_DIR/media.
+ * Photos uploaded from the admin panel live in the media table.
+ * A copy is also written under DATA_DIR/media when the disk is writable.
  */
 import type { CatalogData } from "@/lib/products";
-import { ensureData, fetchCatalog, fetchDescriptions, saveCatalog, saveDescriptions } from "./db";
+import {
+  ensureData,
+  fetchCatalog,
+  fetchDescriptions,
+  readMediaBlob,
+  saveCatalog,
+  saveDescriptions,
+  saveMediaBlob,
+} from "./db";
 import { env } from "./env";
 
 const CACHE_MS = 15_000;
@@ -56,20 +65,86 @@ export async function writeDescriptions(data: Record<string, string[]>) {
 }
 
 const MEDIA = "media";
+const SAFE_NAME = /^[a-z0-9-]+\.[a-z0-9]+$/;
 
-export async function saveMedia(fileName: string, bytes: Uint8Array) {
-  const { fsp, path } = await fsmods();
-  const dir = path.join(dataDir(), MEDIA);
-  await fsp.mkdir(dir, { recursive: true });
-  await fsp.writeFile(path.join(dir, fileName), bytes);
+const EXT_TYPE: Record<string, string> = {
+  webp: "image/webp",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  avif: "image/avif",
+  bmp: "image/bmp",
+  heic: "image/heic",
+  heif: "image/heif",
+  tif: "image/tiff",
+  tiff: "image/tiff",
+  ico: "image/x-icon",
+};
+
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(data: string) {
+  const binary = atob(data.replace(/\s/g, ""));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function contentTypeFor(fileName: string, stored?: string) {
+  const clean = stored?.toLowerCase().split(";")[0]?.trim() ?? "";
+  if (clean.startsWith("image/") && !clean.includes("svg") && !clean.includes("xml")) return clean;
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+  return EXT_TYPE[ext] ?? "application/octet-stream";
+}
+
+/** Carpeta absoluta. Un mkdir relativo a `.data` falla en el hosting y a veces en Windows. */
+async function mediaDir() {
+  const { path } = await fsmods();
+  const projectRoot =
+    typeof import.meta.dirname === "string" ? path.resolve(import.meta.dirname, "../..") : process.cwd();
+  const configured = dataDir();
+  const base = path.isAbsolute(configured) ? configured : path.resolve(projectRoot, configured);
+  return path.join(base, MEDIA);
+}
+
+async function mirrorToDisk(fileName: string, bytes: Uint8Array) {
+  try {
+    const { fsp, path } = await fsmods();
+    const dir = await mediaDir();
+    await fsp.mkdir(dir, { recursive: true });
+    await fsp.writeFile(path.join(dir, fileName), bytes);
+  } catch {
+    /* Sin disco escribible la foto queda igual en la base. */
+  }
+}
+
+export async function saveMedia(fileName: string, bytes: Uint8Array, contentType = "image/webp") {
+  if (!SAFE_NAME.test(fileName)) throw new Error("Nombre de imagen inválido");
+  await saveMediaBlob(fileName, contentTypeFor(fileName, contentType), bytesToBase64(bytes));
+  await mirrorToDisk(fileName, bytes);
   return `/media/${fileName}`;
 }
 
-export async function readMedia(fileName: string): Promise<Uint8Array | null> {
-  if (!/^[a-z0-9-]+\.webp$/.test(fileName)) return null;
+export async function readMedia(
+  fileName: string,
+): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+  if (!SAFE_NAME.test(fileName)) return null;
+  const stored = await readMediaBlob(fileName);
+  if (stored) {
+    return { bytes: base64ToBytes(stored.base64), contentType: contentTypeFor(fileName, stored.contentType) };
+  }
   const { fsp, path } = await fsmods();
   try {
-    return new Uint8Array(await fsp.readFile(path.join(dataDir(), MEDIA, fileName)));
+    const bytes = new Uint8Array(await fsp.readFile(path.join(await mediaDir(), fileName)));
+    return { bytes, contentType: contentTypeFor(fileName) };
   } catch {
     return null;
   }

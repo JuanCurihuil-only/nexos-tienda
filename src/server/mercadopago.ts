@@ -41,13 +41,26 @@ export async function createPreference(order: Order, origin: string) {
       body: JSON.stringify({
         external_reference: order.id,
         statement_descriptor: "NEXOS",
-        items: order.items.map((i) => ({
-          id: i.slug,
-          title: i.variant ? `${i.name} (${i.variant})` : i.name,
-          quantity: i.qty,
-          unit_price: i.unitPrice,
-          currency_id: "ARS",
-        })),
+        items: [
+          ...order.items.map((i) => ({
+            id: i.slug,
+            title: i.variant ? `${i.name} (${i.variant})` : i.name,
+            quantity: i.qty,
+            unit_price: i.unitPrice,
+            currency_id: "ARS",
+          })),
+          ...(order.shipping && order.shipping.price > 0
+            ? [
+                {
+                  id: `envio-${order.shipping.provider}`,
+                  title: order.shipping.label,
+                  quantity: 1,
+                  unit_price: order.shipping.price,
+                  currency_id: "ARS",
+                },
+              ]
+            : []),
+        ],
         payer: {
           name: [first, ...rest].join(" "),
           surname: order.customer.apellido,
