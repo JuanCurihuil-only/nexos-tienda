@@ -202,10 +202,10 @@ function ProductoPage() {
         ]}
       />
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:gap-12">
+      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-12">
         {/* Galería */}
-        <div>
-          <div className="overflow-hidden rounded-3xl border border-border bg-white">
+        <div className="min-w-0">
+          <div className="aspect-square overflow-hidden rounded-3xl border border-border bg-white">
             {img && (
               <img
                 src={img.src}
@@ -213,7 +213,7 @@ function ProductoPage() {
                 width={img.w}
                 height={img.h}
                 fetchPriority="high"
-                className="mx-auto aspect-square w-full object-contain p-6"
+                className="h-full w-full object-contain p-6"
               />
             )}
           </div>
