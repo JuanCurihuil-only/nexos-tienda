@@ -7,7 +7,7 @@ type Sort = "relevancia" | "menor-precio" | "mayor-precio" | "nombre";
 
 const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
-const inStock = (p: Product) => isPurchasable(p) && p.stock > 0;
+const inStock = (p: Product) => isPurchasable(p);
 
 export function CatalogView({
   list,

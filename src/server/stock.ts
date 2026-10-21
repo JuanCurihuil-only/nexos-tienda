@@ -22,9 +22,10 @@ function applyLine(product: RawProduct, item: OrderItem, sign: 1 | -1) {
       (sum, entry) => sum + (entry.available ? entry.stock : 0),
       0,
     );
-  } else {
-    product.stock = Math.max(0, product.stock + delta);
+    product.available = product.stock > 0;
+    return;
   }
+  product.stock = Math.max(0, product.stock + delta);
   if (product.stock === 0) product.available = false;
   else if (sign > 0) product.available = true;
 }

@@ -30,7 +30,14 @@ export const DEFAULT_HERO_SUBTITLE =
 /* ------------------------------------------------------------------ */
 
 export type ProductImage = { src: string; w: number; h: number };
-export type Variant = { id: number; name: string; stock: number; available: boolean };
+export type Variant = {
+  id: number;
+  name: string;
+  stock: number;
+  available: boolean;
+  /** Foto de este modelo, entre las fotos del producto. */
+  image?: string | null;
+};
 
 export type Product = {
   slug: string;
@@ -262,13 +269,37 @@ export function withCurrentDiscount(text: string) {
 
 export function unitsInStock(p: { stock: number; variants: Variant[] }) {
   if (p.variants.length > 0) {
-    return p.variants.reduce((sum, variant) => sum + (variant.available && variant.stock > 0 ? variant.stock : 0), 0);
+    return p.variants.reduce(
+      (sum, variant) => sum + (variant.available && variant.stock > 0 ? variant.stock : 0),
+      0,
+    );
   }
   return p.stock > 0 ? p.stock : 0;
 }
 
+/**
+ * Con modelos, el stock es la suma de los que están a la venta.
+ * Sin modelos, hace falta el interruptor "A la venta" y unidades en el producto.
+ */
+export function hasSellableStock(p: { available: boolean; stock: number; variants: Variant[] }) {
+  if (p.variants.length > 0) return unitsInStock(p) > 0;
+  return p.available && p.stock > 0;
+}
+
+/** Foto del modelo, o la principal del producto si ese modelo no tiene una propia. */
+export function variantPhoto(
+  product: { images: ProductImage[] },
+  variant?: { image?: string | null } | null,
+) {
+  if (variant?.image) {
+    const match = product.images.find((image) => image.src === variant.image);
+    if (match) return match;
+  }
+  return product.images[0];
+}
+
 export function isPurchasable(p: Product) {
-  return p.available && unitsInStock(p) > 0 && p.priceCard != null && p.priceTransfer != null;
+  return hasSellableStock(p) && p.priceCard != null && p.priceTransfer != null;
 }
 
 /** Kit de herramientas: el precio público solo se muestra si hay stock. */

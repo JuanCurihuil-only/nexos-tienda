@@ -3,7 +3,7 @@ import { Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PageTitle, Select, TextInput } from "@/components/admin/ui";
 import { adminProducts } from "@/lib/admin";
-import { cashPrice, formatPrice } from "@/lib/products";
+import { cashPrice, formatPrice, hasSellableStock, unitsInStock } from "@/lib/products";
 
 export const Route = createFileRoute("/admin/productos/")({
   loader: () => adminProducts(),
@@ -12,8 +12,13 @@ export const Route = createFileRoute("/admin/productos/")({
 
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
-function forSale(p: { available: boolean; priceCard: number | null; stock: number }) {
-  return p.available && p.priceCard != null && p.stock > 0;
+function forSale(p: {
+  available: boolean;
+  priceCard: number | null;
+  stock: number;
+  variants: { id: number; name: string; stock: number; available: boolean }[];
+}) {
+  return p.priceCard != null && hasSellableStock(p);
 }
 
 function ProductList() {
@@ -127,7 +132,7 @@ function ProductList() {
                     onSale ? "bg-emerald-100 text-emerald-900" : "bg-gray-200 text-gray-800"
                   }`}
                 >
-                  {onSale ? `Stock ${p.stock}` : "Sin stock"}
+                  {onSale ? `Stock ${unitsInStock(p)}` : "Sin stock"}
                 </span>
               </Link>
             </li>

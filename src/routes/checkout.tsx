@@ -6,7 +6,7 @@ import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { Installments } from "@/components/site/Price";
 import { useCart } from "@/lib/cart";
 import { createOrder, quoteShipping, type ShippingChoice } from "@/lib/checkout";
-import { formatPrice, INSTALLMENTS, publishedDiscountPercent } from "@/lib/products";
+import { formatPrice, INSTALLMENTS, publishedDiscountPercent, variantPhoto } from "@/lib/products";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -433,11 +433,13 @@ function Checkout() {
           <div className="rounded-2xl border border-border bg-card p-5">
             <h2 className="text-lg font-bold">Resumen</h2>
             <ul className="mt-4 space-y-3">
-              {items.map((i) => (
+              {items.map((i) => {
+                const photo = variantPhoto(i.product, i.variant);
+                return (
                 <li key={i.key} className="flex gap-3 text-sm">
-                  {i.product.images[0] && (
+                  {photo && (
                     <img
-                      src={i.product.images[0].src}
+                      src={photo.src}
                       alt=""
                       width={56}
                       height={56}
@@ -457,7 +459,8 @@ function Checkout() {
                     )}
                   </p>
                 </li>
-              ))}
+                );
+              })}
             </ul>
             <div className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
               <div className="flex justify-between">

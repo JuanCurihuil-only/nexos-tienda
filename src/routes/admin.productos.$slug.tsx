@@ -24,6 +24,7 @@ import {
   packageMeasure,
   productDiscountPercent,
   transferPrice,
+  unitsInStock,
   type ProductImage,
   type Variant,
 } from "@/lib/products";
@@ -111,6 +112,7 @@ function ProductEditor() {
   const cardPrice = parseMoney(price);
   const cashPriceValue = parseMoney(cash);
   const parents = categories.filter((c) => !c.parent);
+  const variantUnits = unitsInStock({ stock: 0, variants });
 
   function onCardPrice(value: string) {
     setPrice(value);
@@ -169,6 +171,9 @@ function ProductEditor() {
       lengthCm === undefined
     ) {
       return toast.error("El peso y las medidas tienen que ser números mayores a 0, o quedar vacíos.");
+    }
+    if (variants.some((variant) => !variant.name.trim())) {
+      return toast.error("Cada modelo necesita un nombre.");
     }
     setBusy(true);
     try {
@@ -306,7 +311,15 @@ function ProductEditor() {
                     <button
                       type="button"
                       aria-label="Quitar foto"
-                      onClick={() => setImages((prev) => prev.filter((_, k) => k !== i))}
+                      onClick={() => {
+                        const removed = im.src;
+                        setImages((prev) => prev.filter((_, k) => k !== i));
+                        setVariants((prev) =>
+                          prev.map((variant) =>
+                            variant.image === removed ? { ...variant, image: null } : variant,
+                          ),
+                        );
+                      }}
                       className="rounded-lg p-2 text-destructive hover:bg-destructive/10"
                     >
                       <X className="h-4 w-4" />
@@ -460,74 +473,132 @@ function ProductEditor() {
                 />
               </Field>
             </div>
-            {variants.length === 0 && (
-              <Field label="Stock (unidades)" htmlFor="stock">
-                <TextInput
-                  id="stock"
-                  inputMode="numeric"
-                  value={stock}
-                  onChange={(e) => setStock(e.target.value)}
+            {variants.length === 0 ? (
+              <>
+                <Field label="Stock (unidades)" htmlFor="stock">
+                  <TextInput
+                    id="stock"
+                    inputMode="numeric"
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
+                  />
+                </Field>
+                <Toggle
+                  checked={available}
+                  onChange={setAvailable}
+                  label={available ? "A la venta" : "Sin stock (no se puede comprar)"}
                 />
-              </Field>
+              </>
+            ) : (
+              <p className="rounded-xl bg-surface p-4 text-sm">
+                {variantUnits > 0
+                  ? `Stock total: ${variantUnits} u. Es la suma de los modelos que están a la venta.`
+                  : "Sin stock: poné unidades y dejá a la venta al menos un modelo."}
+              </p>
             )}
-            <Toggle
-              checked={available}
-              onChange={setAvailable}
-              label={available ? "A la venta" : "Sin stock (no se puede comprar)"}
-            />
           </Card>
 
           <Card className="space-y-3">
             <h2 className="text-lg font-bold">Modelos o colores (opcional)</h2>
             <p className="text-sm text-muted-foreground">
-              Solo si el cliente tiene que elegir, por ejemplo un color.
+              Si el cliente tiene que elegir, por ejemplo un color. El stock del producto es la
+              suma de estos modelos. Elegí la foto de cada uno para que se vea cuál está comprando.
             </p>
             {variants.map((v, i) => (
-              <div
-                key={v.id}
-                className="flex flex-wrap items-center gap-2 rounded-xl border border-border p-2"
-              >
-                <TextInput
-                  aria-label="Nombre del modelo"
-                  value={v.name}
-                  onChange={(e) =>
-                    setVariants((prev) =>
-                      prev.map((x, k) => (k === i ? { ...x, name: e.target.value } : x)),
-                    )
-                  }
-                  className="min-w-0 flex-1"
-                  placeholder="Ej: Negro"
-                />
-                <TextInput
-                  aria-label="Stock del modelo"
-                  inputMode="numeric"
-                  value={String(v.stock)}
-                  onChange={(e) =>
-                    setVariants((prev) =>
-                      prev.map((x, k) =>
-                        k === i ? { ...x, stock: parseInt(e.target.value || "0", 10) || 0 } : x,
-                      ),
-                    )
-                  }
-                  className="w-24"
-                />
-                <Toggle
-                  checked={v.available}
-                  onChange={(val) =>
-                    setVariants((prev) =>
-                      prev.map((x, k) => (k === i ? { ...x, available: val } : x)),
-                    )
-                  }
-                  label=""
-                />
-                <button
-                  type="button"
-                  aria-label="Quitar modelo"
-                  onClick={() => setVariants((prev) => prev.filter((_, k) => k !== i))}
-                  className="rounded-lg p-3 text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+              <div key={v.id} className="space-y-3 rounded-xl border border-border p-3">
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="min-w-[12rem] flex-1">
+                    <Field label="Nombre" htmlFor={`variant-name-${v.id}`}>
+                      <TextInput
+                        id={`variant-name-${v.id}`}
+                        value={v.name}
+                        onChange={(e) =>
+                          setVariants((prev) =>
+                            prev.map((x, k) => (k === i ? { ...x, name: e.target.value } : x)),
+                          )
+                        }
+                        placeholder="Ej: Negro"
+                      />
+                    </Field>
+                  </div>
+                  <div className="w-28">
+                    <Field label="Unidades" htmlFor={`variant-stock-${v.id}`}>
+                      <TextInput
+                        id={`variant-stock-${v.id}`}
+                        inputMode="numeric"
+                        value={String(v.stock)}
+                        onChange={(e) =>
+                          setVariants((prev) =>
+                            prev.map((x, k) =>
+                              k === i
+                                ? {
+                                    ...x,
+                                    stock: Math.max(0, parseInt(e.target.value || "0", 10) || 0),
+                                  }
+                                : x,
+                            ),
+                          )
+                        }
+                      />
+                    </Field>
+                  </div>
+                  <Toggle
+                    checked={v.available}
+                    onChange={(val) =>
+                      setVariants((prev) =>
+                        prev.map((x, k) => (k === i ? { ...x, available: val } : x)),
+                      )
+                    }
+                    label={v.available ? "A la venta" : "Sin stock"}
+                  />
+                  <button
+                    type="button"
+                    aria-label="Quitar modelo"
+                    onClick={() => setVariants((prev) => prev.filter((_, k) => k !== i))}
+                    className="mb-1 rounded-lg p-3 text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">Foto de este modelo</p>
+                  {images.length === 0 ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Primero subí las fotos del producto.
+                    </p>
+                  ) : (
+                    <ul className="mt-2 flex flex-wrap gap-2">
+                      {images.map((im) => {
+                        const selected = v.image === im.src;
+                        return (
+                          <li key={im.src}>
+                            <button
+                              type="button"
+                              aria-pressed={selected}
+                              aria-label={
+                                selected
+                                  ? `Quitar la foto de ${v.name || "este modelo"}`
+                                  : `Usar esta foto para ${v.name || "este modelo"}`
+                              }
+                              onClick={() =>
+                                setVariants((prev) =>
+                                  prev.map((x, k) =>
+                                    k === i ? { ...x, image: selected ? null : im.src } : x,
+                                  ),
+                                )
+                              }
+                              className={`h-16 w-16 overflow-hidden rounded-lg border-2 bg-white p-0.5 ${
+                                selected ? "border-primary" : "border-border"
+                              }`}
+                            >
+                              <img src={im.src} alt="" className="h-full w-full object-contain" />
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
               </div>
             ))}
             <Button
@@ -535,7 +606,7 @@ function ProductEditor() {
               onClick={() =>
                 setVariants((prev) => [
                   ...prev,
-                  { id: Date.now(), name: "", stock: 1, available: true },
+                  { id: Date.now(), name: "", stock: 1, available: true, image: null },
                 ])
               }
             >

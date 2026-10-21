@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Minus, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useCart } from "@/lib/cart";
-import { formatPrice } from "@/lib/products";
+import { formatPrice, variantPhoto } from "@/lib/products";
 import { Installments } from "./Price";
 
 export function CartDrawer() {
@@ -60,11 +60,13 @@ export function CartDrawer() {
           </div>
         ) : (
           <ul className="flex-1 space-y-4 overflow-y-auto p-5">
-            {items.map(({ key, product, variant, qty, maxQty }) => (
+            {items.map(({ key, product, variant, qty, maxQty }) => {
+              const photo = variantPhoto(product, variant);
+              return (
               <li key={key} className="flex gap-3">
-                {product.images[0] && (
+                {photo && (
                   <img
-                    src={product.images[0].src}
+                    src={photo.src}
                     alt=""
                     width={80}
                     height={80}
@@ -113,7 +115,8 @@ export function CartDrawer() {
                   </div>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
 

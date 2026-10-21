@@ -7,8 +7,10 @@ import {
   applyTransferPercent,
   cashPrice,
   DEFAULT_TRANSFER_PERCENT,
+  hasSellableStock,
   normalizeDiscountPercent,
   transferPrice,
+  unitsInStock,
   type Category,
   type RawProduct,
 } from "./products";
@@ -64,8 +66,7 @@ export const adminDashboard = createServerFn({ method: "GET" }).handler(async ()
   const [cat, orders] = await Promise.all([store.readCatalog(), listOrders()]);
   return {
     products: cat.products.length,
-    available: cat.products.filter((p) => p.available && p.priceCard != null && p.stock > 0)
-      .length,
+    available: cat.products.filter((p) => p.priceCard != null && hasSellableStock(p)).length,
     categories: cat.categories.length,
     pending: orders.filter(
       (o) => o.status === "pendiente_transferencia" || o.status === "pendiente_pago",
@@ -122,6 +123,7 @@ const productInput = z.object({
         name: z.string().trim().min(1).max(60),
         stock: z.number().int().min(0),
         available: z.boolean(),
+        image: z.string().max(300).nullable().optional(),
       }),
     )
     .max(40),
@@ -171,13 +173,19 @@ export const adminSaveProduct = createServerFn({ method: "POST" })
     const firstLine =
       lines.find((l) => l.length > 25 && !l.endsWith(":"))?.replace(/^[-•*]\s*/, "") ?? "";
 
-    const variants = data.variants.map((variant) => ({
-      ...variant,
-      available: variant.stock > 0 && variant.available,
-    }));
-    const stock = variants.length
-      ? variants.reduce((sum, variant) => sum + (variant.available ? variant.stock : 0), 0)
-      : data.stock;
+    const imageSrcs = new Set(data.images.map((image) => image.src));
+    const variants = data.variants.map((variant) => {
+      const stock = Math.max(0, variant.stock);
+      return {
+        id: variant.id,
+        name: variant.name.trim(),
+        stock,
+        available: stock > 0 && variant.available,
+        image: variant.image && imageSrcs.has(variant.image) ? variant.image : null,
+      };
+    });
+    const stock = variants.length ? unitsInStock({ stock: 0, variants }) : data.stock;
+    const available = variants.length ? stock > 0 : stock > 0 && data.available;
 
     const product: RawProduct = {
       slug,
@@ -187,7 +195,7 @@ export const adminSaveProduct = createServerFn({ method: "POST" })
       priceCard: data.priceCard,
       priceTransfer,
       stock,
-      available: stock > 0 && data.available,
+      available,
       images: data.images,
       variants,
       short: data.short || (firstLine.length > 150 ? `${firstLine.slice(0, 147)}…` : firstLine),

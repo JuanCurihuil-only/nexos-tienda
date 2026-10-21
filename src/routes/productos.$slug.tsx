@@ -17,6 +17,7 @@ import {
   publishedDiscountPercent,
   showPublicPrice,
   WARRANTY_MONTHS,
+  variantPhoto,
   whatsappLink,
   type Product,
 } from "@/lib/products";
@@ -161,19 +162,32 @@ function ProductoPage() {
   const { product, description } = Route.useLoaderData();
   const { add, setOpen } = useCart();
   const navigate = useNavigate();
-  const [active, setActive] = useState(0);
   const firstAvailable = product.variants.find((v) => v.available && v.stock > 0);
   const [variantId, setVariantId] = useState<number | undefined>(firstAvailable?.id);
+  const [active, setActive] = useState(() => {
+    const photo = variantPhoto(product, firstAvailable);
+    const index = photo ? product.images.findIndex((image) => image.src === photo.src) : 0;
+    return index >= 0 ? index : 0;
+  });
 
   const trail = categoryTrail(product.category);
   const variant = product.variants.find((v) => v.id === variantId);
-  const stock = variant ? variant.stock : product.stock;
+  const stock = variant ? (variant.available ? variant.stock : 0) : product.stock;
   const buyable = isPurchasable(product) && stock > 0;
   const related = productsByCategory(product.category)
     .filter((p) => p.slug !== product.slug)
     .sort((a, b) => Number(isPurchasable(b)) - Number(isPurchasable(a)))
     .slice(0, 4);
   const img = product.images[active] ?? product.images[0];
+
+  function chooseVariant(id: number) {
+    setVariantId(id);
+    const next = product.variants.find((entry) => entry.id === id);
+    const photo = variantPhoto(product, next);
+    if (!photo) return;
+    const index = product.images.findIndex((image) => image.src === photo.src);
+    if (index >= 0) setActive(index);
+  }
 
   const consult = whatsappLink(
     `Hola Nexos! Quiero consultar por: ${product.name}${variant ? ` (${variant.name})` : ""} — ${absoluteUrl(`/productos/${product.slug}`)}`,
@@ -195,7 +209,7 @@ function ProductoPage() {
             {img && (
               <img
                 src={img.src}
-                alt={product.name}
+                alt={variant ? `${product.name}, ${variant.name}` : product.name}
                 width={img.w}
                 height={img.h}
                 fetchPriority="high"
@@ -256,29 +270,45 @@ function ProductoPage() {
               <fieldset className="mt-4">
                 <legend className="text-sm font-semibold">Modelo</legend>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {product.variants.map((v) => (
-                    <label
-                      key={v.id}
-                      className={`cursor-pointer rounded-lg border px-3 py-2 text-sm font-medium ${
-                        !v.available || v.stock < 1
-                          ? "cursor-not-allowed border-dashed text-muted-foreground line-through opacity-60"
-                          : v.id === variantId
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border hover:border-primary"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="variante"
-                        value={v.id}
-                        disabled={!v.available || v.stock < 1}
-                        checked={v.id === variantId}
-                        onChange={() => setVariantId(v.id)}
-                        className="sr-only"
-                      />
-                      {v.name}
-                    </label>
-                  ))}
+                  {product.variants.map((v) => {
+                    const photo = v.image ? variantPhoto(product, v) : undefined;
+                    return (
+                      <label
+                        key={v.id}
+                        className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 text-sm font-medium ${
+                          !v.available || v.stock < 1
+                            ? "cursor-not-allowed border-dashed text-muted-foreground opacity-60"
+                            : v.id === variantId
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border hover:border-primary"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="variante"
+                          value={v.id}
+                          disabled={!v.available || v.stock < 1}
+                          checked={v.id === variantId}
+                          onChange={() => chooseVariant(v.id)}
+                          className="sr-only"
+                        />
+                        {photo && (
+                          <img
+                            src={photo.src}
+                            alt=""
+                            width={40}
+                            height={40}
+                            className="h-10 w-10 rounded-md bg-white object-contain"
+                          />
+                        )}
+                        {v.name && (
+                          <span className={!v.available || v.stock < 1 ? "line-through" : undefined}>
+                            {v.name}
+                          </span>
+                        )}
+                      </label>
+                    );
+                  })}
                 </div>
               </fieldset>
             )}
