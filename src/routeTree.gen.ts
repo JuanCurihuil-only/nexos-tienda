@@ -15,6 +15,7 @@ import { Route as CatalogoRouteImport } from './routes/catalogo'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as PoliticaDeDevolucionRouteImport } from './routes/politica-de-devolucion'
+import { Route as PoliticaDePrivacidadRouteImport } from './routes/politica-de-privacidad'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminBannerRouteImport } from './routes/admin.banner'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
@@ -65,6 +66,11 @@ const ContactoRoute = ContactoRouteImport.update({
 const PoliticaDeDevolucionRoute = PoliticaDeDevolucionRouteImport.update({
   id: '/politica-de-devolucion',
   path: '/politica-de-devolucion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaDePrivacidadRoute = PoliticaDePrivacidadRouteImport.update({
+  id: '/politica-de-privacidad',
+  path: '/politica-de-privacidad',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -180,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/contacto': typeof ContactoRoute
   '/politica-de-devolucion': typeof PoliticaDeDevolucionRoute
+  '/politica-de-privacidad': typeof PoliticaDePrivacidadRoute
   '/admin/banner': typeof AdminBannerRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/login': typeof AdminLoginRoute
@@ -208,6 +215,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/contacto': typeof ContactoRoute
   '/politica-de-devolucion': typeof PoliticaDeDevolucionRoute
+  '/politica-de-privacidad': typeof PoliticaDePrivacidadRoute
   '/admin/banner': typeof AdminBannerRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/login': typeof AdminLoginRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/contacto': typeof ContactoRoute
   '/politica-de-devolucion': typeof PoliticaDeDevolucionRoute
+  '/politica-de-privacidad': typeof PoliticaDePrivacidadRoute
   '/admin/banner': typeof AdminBannerRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/login': typeof AdminLoginRoute
@@ -269,6 +278,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contacto'
     | '/politica-de-devolucion'
+    | '/politica-de-privacidad'
     | '/admin/banner'
     | '/admin/categorias'
     | '/admin/login'
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contacto'
     | '/politica-de-devolucion'
+    | '/politica-de-privacidad'
     | '/admin/banner'
     | '/admin/categorias'
     | '/admin/login'
@@ -326,6 +337,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contacto'
     | '/politica-de-devolucion'
+    | '/politica-de-privacidad'
     | '/admin/banner'
     | '/admin/categorias'
     | '/admin/login'
@@ -356,6 +368,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   ContactoRoute: typeof ContactoRoute
   PoliticaDeDevolucionRoute: typeof PoliticaDeDevolucionRoute
+  PoliticaDePrivacidadRoute: typeof PoliticaDePrivacidadRoute
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   ElectronicaSplatRoute: typeof ElectronicaSplatRoute
   HerramientasSplatRoute: typeof HerramientasSplatRoute
@@ -411,6 +424,13 @@ declare module '@tanstack/react-router' {
       path: '/politica-de-devolucion'
       fullPath: '/politica-de-devolucion'
       preLoaderRoute: typeof PoliticaDeDevolucionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-de-privacidad': {
+      id: '/politica-de-privacidad'
+      path: '/politica-de-privacidad'
+      fullPath: '/politica-de-privacidad'
+      preLoaderRoute: typeof PoliticaDePrivacidadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -608,6 +628,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   ContactoRoute: ContactoRoute,
   PoliticaDeDevolucionRoute: PoliticaDeDevolucionRoute,
+  PoliticaDePrivacidadRoute: PoliticaDePrivacidadRoute,
   CategoriaSlugRoute: CategoriaSlugRoute,
   ElectronicaSplatRoute: ElectronicaSplatRoute,
   HerramientasSplatRoute: HerramientasSplatRoute,

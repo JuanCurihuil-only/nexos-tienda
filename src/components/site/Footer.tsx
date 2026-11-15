@@ -91,6 +91,11 @@ export function Footer() {
               </Link>
             </li>
             <li>
+              <Link to="/politica-de-privacidad" className="opacity-85 hover:underline">
+                Política de privacidad
+              </Link>
+            </li>
+            <li>
               <Link to="/catalogo" className="opacity-85 hover:underline">
                 Todos los productos
               </Link>

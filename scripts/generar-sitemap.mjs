@@ -17,6 +17,7 @@ const pages = [
   ["/catalogo", "0.8"],
   ["/contacto", "0.4"],
   ["/politica-de-devolucion", "0.3"],
+  ["/politica-de-privacidad", "0.3"],
   ...cats.map((c) => [`/categoria/${c}`, "0.8"]),
 ];
 
