@@ -1,6 +1,6 @@
 /**
- * Store data lives in Firestore.
- * Photos uploaded from the admin panel live in Firebase Storage (media/).
+ * Store data lives in Neon Postgres.
+ * Photos uploaded from the admin panel live in the media table.
  * A copy is also written under DATA_DIR/media when the disk is writable.
  */
 import type { CatalogData } from "@/lib/products";
