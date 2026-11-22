@@ -2,6 +2,9 @@
  * Store data lives in Neon Postgres.
  * Photos uploaded from the admin panel live in the media table.
  * A copy is also written under DATA_DIR/media when the disk is writable.
+ *
+ * Long in-memory caches cut Neon CU-hrs: public pages rarely hit the DB,
+ * so compute can scale to zero between visits.
  */
 import type { CatalogData } from "@/lib/products";
 import {
@@ -15,7 +18,14 @@ import {
 } from "./db";
 import { env } from "./env";
 
-const CACHE_MS = 15_000;
+/** Default 5 minutes. Override with CATALOG_CACHE_MS (milliseconds). */
+function catalogCacheMs() {
+  const raw = env("CATALOG_CACHE_MS");
+  const n = raw ? Number(raw) : Number.NaN;
+  return Number.isFinite(n) && n >= 5_000 ? n : 300_000;
+}
+
+const MEDIA_MEMORY_MS = 10 * 60_000;
 
 export function dataDir() {
   return env("DATA_DIR") ?? ".data";
@@ -28,9 +38,11 @@ async function fsmods() {
 
 let cache: { at: number; data: CatalogData } | null = null;
 let descCache: { at: number; data: Record<string, string[]> } | null = null;
+const mediaMem = new Map<string, { at: number; bytes: Uint8Array; contentType: string }>();
 
 export async function readCatalog(): Promise<CatalogData> {
-  if (cache && Date.now() - cache.at < CACHE_MS) return cache.data;
+  const ttl = catalogCacheMs();
+  if (cache && Date.now() - cache.at < ttl) return cache.data;
   await ensureData();
   const data = await fetchCatalog();
   cache = { at: Date.now(), data };
@@ -51,7 +63,8 @@ export async function loadCatalogIntoModule() {
 }
 
 export async function readDescriptions(): Promise<Record<string, string[]>> {
-  if (descCache && Date.now() - descCache.at < CACHE_MS) return descCache.data;
+  const ttl = catalogCacheMs();
+  if (descCache && Date.now() - descCache.at < ttl) return descCache.data;
   await ensureData();
   const data = await fetchDescriptions();
   descCache = { at: Date.now(), data };
@@ -126,10 +139,20 @@ async function mirrorToDisk(fileName: string, bytes: Uint8Array) {
   }
 }
 
+function rememberMedia(fileName: string, bytes: Uint8Array, contentType: string) {
+  mediaMem.set(fileName, { at: Date.now(), bytes, contentType });
+  if (mediaMem.size > 80) {
+    const oldest = [...mediaMem.entries()].sort((a, b) => a[1].at - b[1].at)[0];
+    if (oldest) mediaMem.delete(oldest[0]);
+  }
+}
+
 export async function saveMedia(fileName: string, bytes: Uint8Array, contentType = "image/webp") {
   if (!SAFE_NAME.test(fileName)) throw new Error("Nombre de imagen inválido");
-  await saveMediaBlob(fileName, contentTypeFor(fileName, contentType), bytesToBase64(bytes));
+  const type = contentTypeFor(fileName, contentType);
+  await saveMediaBlob(fileName, type, bytesToBase64(bytes));
   await mirrorToDisk(fileName, bytes);
+  rememberMedia(fileName, bytes, type);
   return `/media/${fileName}`;
 }
 
@@ -137,15 +160,28 @@ export async function readMedia(
   fileName: string,
 ): Promise<{ bytes: Uint8Array; contentType: string } | null> {
   if (!SAFE_NAME.test(fileName)) return null;
-  const stored = await readMediaBlob(fileName);
-  if (stored) {
-    return { bytes: base64ToBytes(stored.base64), contentType: contentTypeFor(fileName, stored.contentType) };
+
+  const mem = mediaMem.get(fileName);
+  if (mem && Date.now() - mem.at < MEDIA_MEMORY_MS) {
+    return { bytes: mem.bytes, contentType: mem.contentType };
   }
+
+  // Disco primero: evita despertar Neon en cada foto del panel.
   const { fsp, path } = await fsmods();
   try {
     const bytes = new Uint8Array(await fsp.readFile(path.join(await mediaDir(), fileName)));
-    return { bytes, contentType: contentTypeFor(fileName) };
+    const contentType = contentTypeFor(fileName);
+    rememberMedia(fileName, bytes, contentType);
+    return { bytes, contentType };
   } catch {
-    return null;
+    /* sin archivo local */
   }
+
+  const stored = await readMediaBlob(fileName);
+  if (!stored) return null;
+  const bytes = base64ToBytes(stored.base64);
+  const contentType = contentTypeFor(fileName, stored.contentType);
+  rememberMedia(fileName, bytes, contentType);
+  await mirrorToDisk(fileName, bytes);
+  return { bytes, contentType };
 }

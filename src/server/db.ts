@@ -17,9 +17,14 @@ import { env } from "./env";
 
 type Sql = NeonQueryFunction<false, false>;
 
+/** Bump when CREATE/ALTER tables change — skips heavy DDL on warm deploys. */
+const SCHEMA_VERSION = 4;
+
 let client: Sql | null = null;
 let schemaReady: Promise<void> | null = null;
 let dataReady: Promise<void> | null = null;
+let schemaVerified = false;
+let catalogSeeded = false;
 
 function connectionString() {
   const raw = env("DATABASE_URL")?.replace(/^["']|["']$/g, "");
@@ -51,11 +56,45 @@ async function readJsonFile<T>(filePath: string): Promise<T | null> {
 }
 
 export function ensureSchema() {
-  schemaReady ??= createTables().catch((error: unknown) => {
+  if (schemaVerified) return Promise.resolve();
+  schemaReady ??= prepareSchema().catch((error: unknown) => {
     schemaReady = null;
     throw error;
   });
   return schemaReady;
+}
+
+async function prepareSchema() {
+  if (env("NEON_SKIP_DDL") === "1" || env("NEON_SKIP_DDL") === "true") {
+    schemaVerified = true;
+    catalogSeeded = true;
+    return;
+  }
+
+  const query = sql();
+  try {
+    const rows = (await query`
+      SELECT key, value FROM app_meta
+      WHERE key IN ('schema_version', 'catalog_seeded')
+    `) as { key: string; value: unknown }[];
+    const meta = Object.fromEntries(rows.map((row) => [row.key, row.value]));
+    const parsedVersion = Number(meta.schema_version);
+    if (parsedVersion === SCHEMA_VERSION) {
+      schemaVerified = true;
+      if (meta.catalog_seeded === true || meta.catalog_seeded === "true") catalogSeeded = true;
+      return;
+    }
+  } catch {
+    /* app_meta missing — create tables below */
+  }
+
+  await createTables();
+  await query`
+    INSERT INTO app_meta (key, value)
+    VALUES ('schema_version', ${JSON.stringify(SCHEMA_VERSION)}::jsonb)
+    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+  `;
+  schemaVerified = true;
 }
 
 async function createTables() {
@@ -166,9 +205,14 @@ export function ensureData() {
 
 async function seedIfNeeded() {
   await ensureSchema();
+  if (catalogSeeded) return;
+
   const query = sql();
   const seeded = await query`SELECT key FROM app_meta WHERE key = 'catalog_seeded'`;
-  if (seeded.length > 0) return;
+  if (seeded.length > 0) {
+    catalogSeeded = true;
+    return;
+  }
 
   const catalog = await loadCatalogFiles();
   const descriptions = await loadDescriptionFiles();
@@ -176,6 +220,7 @@ async function seedIfNeeded() {
   await saveDescriptions(descriptions);
   await importOrderFiles();
   await query`INSERT INTO app_meta (key, value) VALUES ('catalog_seeded', 'true'::jsonb)`;
+  catalogSeeded = true;
 }
 
 async function loadCatalogFiles(): Promise<CatalogData> {

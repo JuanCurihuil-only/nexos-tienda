@@ -9,11 +9,12 @@ export const getCatalog = createServerFn({ method: "GET" }).handler(async () => 
 
 let lastLoad = 0;
 let current: CatalogData | null = null;
-const CLIENT_TTL_MS = 30_000;
+/** 5 minutos en el navegador — menos hits a Neon entre páginas. */
+const CLIENT_TTL_MS = 300_000;
 
 /**
  * Se llama antes de mostrar cualquier página. En el navegador se reutiliza
- * durante 30 segundos para no pedirlo en cada clic.
+ * durante unos minutos para no pedir el catálogo en cada clic.
  */
 export async function ensureCatalog(): Promise<CatalogData> {
   const isBrowser = typeof window !== "undefined";
