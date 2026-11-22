@@ -33,4 +33,6 @@ dist-ssr
 
 # Claves y datos locales de la tienda
 .env
+.env.local
 .data/
+backups/

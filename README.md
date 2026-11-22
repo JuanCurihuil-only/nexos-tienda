@@ -8,14 +8,16 @@
    categorías, cambiás el banner y ves los pedidos.
 4. Botón **Respaldo** (arriba a la derecha): descarga todo en un archivo. Hacelo seguido.
 
-Los datos que cargás en el panel se guardan en la carpeta `.data` (no la borres).
-Lo que sigue en esta guía es para quien quiera editar archivos a mano.
+Los datos del panel viven en **Firebase (Firestore)**. Las fotos nuevas del admin
+van a Storage; las del catálogo de fábrica siguen en `public/img/`.
+Lo que sigue en esta guía es para quien quiera editar archivos a mano (seed).
 
-## Publicar en un servidor con disco
+## Publicar (Vercel)
 
-- Construir: `npm run build:servidor` · Iniciar: `npm start`
-- Variables: las del `.env`, más `DATA_DIR` apuntando al disco persistente
-  (ej. `/data`) y `PUBLIC_SITE_URL=https://nexoscba.com`.
+- Variables Firebase del `.env.example` (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`).
+- Opcional antes del deploy: `npm run seed:firestore` para sembrar el catálogo.
+- Si Firestore está vacío, el primer request siembra desde `src/data`.
+- `PUBLIC_SITE_URL=https://nexoscba.com`.
 
 ## Abrirla en tu PC
 
