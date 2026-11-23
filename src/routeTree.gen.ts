@@ -21,6 +21,7 @@ import { Route as AdminBannerRouteImport } from './routes/admin.banner'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminPreciosRouteImport } from './routes/admin.precios'
+import { Route as ApiProductosRouteImport } from './routes/api.productos'
 import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
 import { Route as ElectronicaSplatRouteImport } from './routes/electronica.$'
 import { Route as HerramientasSplatRouteImport } from './routes/herramientas.$'
@@ -36,6 +37,7 @@ import { Route as AdminProductosSlugRouteImport } from './routes/admin.productos
 import { Route as ApiAdminGoogleRouteImport } from './routes/api.admin.google'
 import { Route as ApiAdminRespaldoRouteImport } from './routes/api.admin.respaldo'
 import { Route as ApiMercadopagoWebhookRouteImport } from './routes/api.mercadopago.webhook'
+import { Route as ApiProductosSlugRouteImport } from './routes/api.productos.$slug'
 import { Route as ApiAdminGoogleCallbackRouteImport } from './routes/api.admin.google.callback'
 
 const IndexRoute = IndexRouteImport.update({
@@ -97,6 +99,11 @@ const AdminPreciosRoute = AdminPreciosRouteImport.update({
   id: '/precios',
   path: '/precios',
   getParentRoute: () => AdminRoute,
+} as any)
+const ApiProductosRoute = ApiProductosRouteImport.update({
+  id: '/api/productos',
+  path: '/api/productos',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
   id: '/categoria/$slug',
@@ -173,6 +180,11 @@ const ApiMercadopagoWebhookRoute = ApiMercadopagoWebhookRouteImport.update({
   path: '/api/mercadopago/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiProductosSlugRoute = ApiProductosSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ApiProductosRoute,
+} as any)
 const ApiAdminGoogleCallbackRoute = ApiAdminGoogleCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
@@ -191,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/precios': typeof AdminPreciosRoute
+  '/api/productos': typeof ApiProductosRouteWithChildren
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/electronica/$': typeof ElectronicaSplatRoute
   '/herramientas/$': typeof HerramientasSplatRoute
@@ -205,6 +218,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/google': typeof ApiAdminGoogleRouteWithChildren
   '/api/admin/respaldo': typeof ApiAdminRespaldoRoute
   '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
+  '/api/productos/$slug': typeof ApiProductosSlugRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/productos/': typeof AdminProductosIndexRoute
   '/api/admin/google/callback': typeof ApiAdminGoogleCallbackRoute
@@ -220,6 +234,7 @@ export interface FileRoutesByTo {
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/precios': typeof AdminPreciosRoute
+  '/api/productos': typeof ApiProductosRouteWithChildren
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/electronica/$': typeof ElectronicaSplatRoute
   '/herramientas/$': typeof HerramientasSplatRoute
@@ -234,6 +249,7 @@ export interface FileRoutesByTo {
   '/api/admin/google': typeof ApiAdminGoogleRouteWithChildren
   '/api/admin/respaldo': typeof ApiAdminRespaldoRoute
   '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
+  '/api/productos/$slug': typeof ApiProductosSlugRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/admin/productos': typeof AdminProductosIndexRoute
   '/api/admin/google/callback': typeof ApiAdminGoogleCallbackRoute
@@ -251,6 +267,7 @@ export interface FileRoutesById {
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/precios': typeof AdminPreciosRoute
+  '/api/productos': typeof ApiProductosRouteWithChildren
   '/categoria/$slug': typeof CategoriaSlugRoute
   '/electronica/$': typeof ElectronicaSplatRoute
   '/herramientas/$': typeof HerramientasSplatRoute
@@ -265,6 +282,7 @@ export interface FileRoutesById {
   '/api/admin/google': typeof ApiAdminGoogleRouteWithChildren
   '/api/admin/respaldo': typeof ApiAdminRespaldoRoute
   '/api/mercadopago/webhook': typeof ApiMercadopagoWebhookRoute
+  '/api/productos/$slug': typeof ApiProductosSlugRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/productos/': typeof AdminProductosIndexRoute
   '/api/admin/google/callback': typeof ApiAdminGoogleCallbackRoute
@@ -283,6 +301,7 @@ export interface FileRouteTypes {
     | '/admin/categorias'
     | '/admin/login'
     | '/admin/precios'
+    | '/api/productos'
     | '/categoria/$slug'
     | '/electronica/$'
     | '/herramientas/$'
@@ -297,6 +316,7 @@ export interface FileRouteTypes {
     | '/api/admin/google'
     | '/api/admin/respaldo'
     | '/api/mercadopago/webhook'
+    | '/api/productos/$slug'
     | '/admin/pedidos/'
     | '/admin/productos/'
     | '/api/admin/google/callback'
@@ -312,6 +332,7 @@ export interface FileRouteTypes {
     | '/admin/categorias'
     | '/admin/login'
     | '/admin/precios'
+    | '/api/productos'
     | '/categoria/$slug'
     | '/electronica/$'
     | '/herramientas/$'
@@ -326,6 +347,7 @@ export interface FileRouteTypes {
     | '/api/admin/google'
     | '/api/admin/respaldo'
     | '/api/mercadopago/webhook'
+    | '/api/productos/$slug'
     | '/admin/pedidos'
     | '/admin/productos'
     | '/api/admin/google/callback'
@@ -342,6 +364,7 @@ export interface FileRouteTypes {
     | '/admin/categorias'
     | '/admin/login'
     | '/admin/precios'
+    | '/api/productos'
     | '/categoria/$slug'
     | '/electronica/$'
     | '/herramientas/$'
@@ -356,6 +379,7 @@ export interface FileRouteTypes {
     | '/api/admin/google'
     | '/api/admin/respaldo'
     | '/api/mercadopago/webhook'
+    | '/api/productos/$slug'
     | '/admin/pedidos/'
     | '/admin/productos/'
     | '/api/admin/google/callback'
@@ -369,6 +393,7 @@ export interface RootRouteChildren {
   ContactoRoute: typeof ContactoRoute
   PoliticaDeDevolucionRoute: typeof PoliticaDeDevolucionRoute
   PoliticaDePrivacidadRoute: typeof PoliticaDePrivacidadRoute
+  ApiProductosRoute: typeof ApiProductosRouteWithChildren
   CategoriaSlugRoute: typeof CategoriaSlugRoute
   ElectronicaSplatRoute: typeof ElectronicaSplatRoute
   HerramientasSplatRoute: typeof HerramientasSplatRoute
@@ -467,6 +492,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/precios'
       preLoaderRoute: typeof AdminPreciosRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/productos': {
+      id: '/api/productos'
+      path: '/api/productos'
+      fullPath: '/api/productos'
+      preLoaderRoute: typeof ApiProductosRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/categoria/$slug': {
       id: '/categoria/$slug'
@@ -573,6 +605,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMercadopagoWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/productos/$slug': {
+      id: '/api/productos/$slug'
+      path: '/$slug'
+      fullPath: '/api/productos/$slug'
+      preLoaderRoute: typeof ApiProductosSlugRouteImport
+      parentRoute: typeof ApiProductosRoute
+    }
     '/api/admin/google/callback': {
       id: '/api/admin/google/callback'
       path: '/callback'
@@ -609,6 +648,18 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface ApiProductosRouteChildren {
+  ApiProductosSlugRoute: typeof ApiProductosSlugRoute
+}
+
+const ApiProductosRouteChildren: ApiProductosRouteChildren = {
+  ApiProductosSlugRoute: ApiProductosSlugRoute,
+}
+
+const ApiProductosRouteWithChildren = ApiProductosRoute._addFileChildren(
+  ApiProductosRouteChildren,
+)
+
 interface ApiAdminGoogleRouteChildren {
   ApiAdminGoogleCallbackRoute: typeof ApiAdminGoogleCallbackRoute
 }
@@ -629,6 +680,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactoRoute: ContactoRoute,
   PoliticaDeDevolucionRoute: PoliticaDeDevolucionRoute,
   PoliticaDePrivacidadRoute: PoliticaDePrivacidadRoute,
+  ApiProductosRoute: ApiProductosRouteWithChildren,
   CategoriaSlugRoute: CategoriaSlugRoute,
   ElectronicaSplatRoute: ElectronicaSplatRoute,
   HerramientasSplatRoute: HerramientasSplatRoute,
