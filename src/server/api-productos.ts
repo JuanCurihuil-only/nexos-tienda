@@ -1,8 +1,12 @@
 /**
  * Serialización de productos para la API pública de solo lectura (n8n, integraciones).
+ * Las URLs absolutas siempre apuntan al dominio público (no localhost).
  */
 import type { Category, ProductImage, RawProduct, Variant } from "@/lib/products";
-import { env, publicUrl } from "./env";
+import { env } from "./env";
+
+/** Origen canónico para enlaces/fotos que consumen n8n / WhatsApp. */
+const PUBLIC_API_ORIGIN = "https://www.nexoscba.com";
 
 export function assertProductosApiKey(request: Request): Response | null {
   const expected = env("API_PRODUCTOS_KEY");
@@ -16,9 +20,21 @@ export function assertProductosApiKey(request: Request): Response | null {
   return Response.json({ error: "No autorizado" }, { status: 401 });
 }
 
+function isLocalHost(value: string) {
+  return /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?/i.test(value);
+}
+
 function abs(origin: string, path: string) {
   if (!path) return path;
-  if (/^https?:\/\//i.test(path)) return path;
+  if (/^https?:\/\//i.test(path)) {
+    if (!isLocalHost(path)) return path;
+    try {
+      const parsed = new URL(path);
+      return `${origin}${parsed.pathname}${parsed.search}`;
+    } catch {
+      return path;
+    }
+  }
   return `${origin}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
@@ -76,6 +92,15 @@ export function mapCategory(category: Category) {
   };
 }
 
-export function apiOrigin(request: Request) {
-  return publicUrl(new URL(request.url).origin);
+/**
+ * Solo para la API de productos: nunca devolver localhost.
+ * PUBLIC_SITE_URL se usa si es https público; si no, www.nexoscba.com.
+ * No afecta SEO ni absoluteUrl() de la tienda.
+ */
+export function apiOrigin(_request?: Request) {
+  const configured = env("PUBLIC_SITE_URL")?.replace(/\/$/, "");
+  if (configured && !isLocalHost(configured) && /^https:\/\//i.test(configured)) {
+    return configured;
+  }
+  return PUBLIC_API_ORIGIN;
 }
