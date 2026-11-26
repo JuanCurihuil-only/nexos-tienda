@@ -24,11 +24,15 @@ export const Route = createFileRoute("/api/productos")({
         );
         const category = url.searchParams.get("category")?.trim() || "";
 
+        const { DEFAULT_TRANSFER_PERCENT } = await import("@/lib/products");
         const store = await import("@/server/store");
         const catalog = await store.readCatalog();
         const origin = apiOrigin(request);
+        const transferDiscount = catalog.settings.transferDiscount ?? null;
 
-        let products = catalog.products.map((product) => mapProduct(origin, product));
+        let products = catalog.products.map((product) =>
+          mapProduct(origin, product, { transferDiscount }),
+        );
         if (onlyAvailable) products = products.filter((product) => product.available);
         if (category) products = products.filter((product) => product.category === category);
 
@@ -36,6 +40,7 @@ export const Route = createFileRoute("/api/productos")({
           {
             updatedAt: new Date().toISOString(),
             count: products.length,
+            transferDiscount: transferDiscount ?? DEFAULT_TRANSFER_PERCENT,
             categories: catalog.categories.map(mapCategory),
             products,
           },

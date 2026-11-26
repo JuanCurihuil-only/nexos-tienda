@@ -29,7 +29,10 @@ export const Route = createFileRoute("/api/productos/$slug")({
         return Response.json(
           {
             updatedAt: new Date().toISOString(),
-            product: mapProduct(origin, product, descriptions[slug] ?? []),
+            product: mapProduct(origin, product, {
+              description: descriptions[slug] ?? [],
+              transferDiscount: catalog.settings.transferDiscount ?? null,
+            }),
           },
           {
             headers: {

@@ -1,12 +1,28 @@
 /**
  * Serialización de productos para la API pública de solo lectura (n8n, integraciones).
  * Las URLs absolutas siempre apuntan al dominio público (no localhost).
+ * priceTransfer usa la misma regla que la tienda (precio propio o descuento general).
  */
-import type { Category, ProductImage, RawProduct, Variant } from "@/lib/products";
+import {
+  DEFAULT_TRANSFER_PERCENT,
+  normalizeDiscountPercent,
+  productDiscountPercent,
+  transferPriceAt,
+  type Category,
+  type ProductImage,
+  type RawProduct,
+  type Variant,
+} from "@/lib/products";
 import { env } from "./env";
 
 /** Origen canónico para enlaces/fotos que consumen n8n / WhatsApp. */
 const PUBLIC_API_ORIGIN = "https://www.nexoscba.com";
+
+export type MapProductOptions = {
+  description?: string[];
+  /** Descuento general del panel; si falta, el de fábrica (igual que la tienda). */
+  transferDiscount?: number | null;
+};
 
 export function assertProductosApiKey(request: Request): Response | null {
   const expected = env("API_PRODUCTOS_KEY");
@@ -57,15 +73,40 @@ function mapVariant(origin: string, variant: Variant) {
   };
 }
 
-export function mapProduct(origin: string, product: RawProduct, description?: string[]) {
+/** Misma regla que `cashPrice` en la tienda, sin mutar el estado global del catálogo. */
+export function resolvedTransferPrice(
+  product: { priceCard: number | null; priceTransfer?: number | null },
+  transferDiscount?: number | null,
+) {
+  if (product.priceTransfer != null) return product.priceTransfer;
+  const percent =
+    transferDiscount == null || !Number.isFinite(transferDiscount)
+      ? DEFAULT_TRANSFER_PERCENT
+      : normalizeDiscountPercent(transferDiscount);
+  return transferPriceAt(product.priceCard, percent);
+}
+
+export function mapProduct(
+  origin: string,
+  product: RawProduct,
+  options: MapProductOptions | string[] = {},
+) {
+  // Compat: mapProduct(origin, product, descriptionLines)
+  const opts: MapProductOptions = Array.isArray(options) ? { description: options } : options;
   const images = (product.images ?? []).map((image) => mapImage(origin, image));
+  const priceTransfer = resolvedTransferPrice(product, opts.transferDiscount);
+  const discountPercent =
+    product.priceCard != null && priceTransfer != null
+      ? productDiscountPercent(product.priceCard, priceTransfer)
+      : null;
   return {
     slug: product.slug,
     name: product.name,
     brand: product.brand,
     category: product.category,
     priceCard: product.priceCard,
-    priceTransfer: product.priceTransfer ?? null,
+    priceTransfer,
+    discountPercent,
     stock: product.stock,
     available: product.available,
     short: product.short ?? "",
@@ -77,7 +118,7 @@ export function mapProduct(origin: string, product: RawProduct, description?: st
     heightCm: product.heightCm ?? null,
     widthCm: product.widthCm ?? null,
     lengthCm: product.lengthCm ?? null,
-    ...(description ? { description } : {}),
+    ...(opts.description ? { description: opts.description } : {}),
   };
 }
 
